@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Pressable } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Pressable, ScrollView } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 
 const C = {
@@ -16,6 +16,7 @@ const C = {
 export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall, openVideoCall }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const scrollRef = React.useRef(null);
 
   const [messages, setMessages] = useState([
     { id: 1, text: "Secure channel opened.", mine: false, time: "10:24" },
