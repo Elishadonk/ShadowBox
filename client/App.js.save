@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { initDatabase } from "./src/database/database";
+import React, { useState } from "react";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import NewChatScreen from "./src/screens/NewChatScreen";
@@ -7,24 +9,9 @@ import VoiceCallScreen from "./src/screens/VoiceCallScreen";
 import VideoCallScreen from "./src/screens/VideoCallScreen";
 import ContactsScreen from "./src/screens/ContactsScreen";
 
-import { initDatabase } from "./src/database/database";
-
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [nodeId, setNodeId] = useState("Alpha-01");
-
-  useEffect(() => {
-    async function setup() {
-      try {
-        await initDatabase();
-        console.log("✅ Shadow Box database ready");
-      } catch (err) {
-        console.error("Database initialization failed:", err);
-      }
-    }
-
-    setup();
-  }, []);
 
   const openChat = (id) => {
     setNodeId(id || "Alpha-01");
