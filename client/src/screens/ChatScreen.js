@@ -15,6 +15,34 @@ const C = {
 
 export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall, openVideoCall }) {
   const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [messages, setMessages] = useState([
+    { id: 1, text: "Secure channel opened.", mine: false, time: "10:24" },
+    { id: 2, text: "Shadow Box online.", mine: true, time: "10:25" },
+  ]);
+
+  function sendMessage() {
+    const text = message.trim();
+    if (!text) return;
+
+    const now = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        text,
+        mine: true,
+        time: now,
+      },
+    ]);
+
+    setMessage("");
+  }
 
   return (
     <View style={styles.page}>
@@ -49,15 +77,20 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
       <View style={styles.messages}>
         <Text style={styles.day}>Today</Text>
 
-        <View style={styles.otherBubble}>
-          <Text style={styles.msgText}>Secure channel opened.</Text>
-          <Text style={styles.msgTime}>10:24</Text>
-        </View>
+        {messages.map((item) => (
+          <View
+            key={item.id}
+            style={item.mine ? styles.myBubble : styles.otherBubble}
+          >
+            <Text style={item.mine ? styles.myText : styles.msgText}>
+              {item.text}
+            </Text>
 
-        <View style={styles.myBubble}>
-          <Text style={styles.myText}>Shadow Box online.</Text>
-          <Text style={styles.myTime}>10:25 ✓✓</Text>
-        </View>
+            <Text style={item.mine ? styles.myTime : styles.msgTime}>
+              {item.mine ? `${item.time} ✓✓` : item.time}
+            </Text>
+          </View>
+        ))}
       </View>
 
       <View style={styles.inputBar}>
@@ -70,6 +103,9 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
             placeholder="Message..."
             placeholderTextColor={C.muted}
             style={styles.input}
+            value={message}
+            onChangeText={setMessage}
+            onSubmitEditing={sendMessage}
           />
         </View>
 
@@ -77,7 +113,7 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
           <Feather name="mic" size={21} color={C.muted} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.sendBtn}>
+        <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
           <Ionicons name="send" size={20} color="white" />
         </TouchableOpacity>
       </View>
