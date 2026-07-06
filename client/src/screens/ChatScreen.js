@@ -1,6 +1,16 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Pressable, ScrollView } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Pressable,
+  ScrollView,
+} from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
+
+import { getMessages, saveMessage } from "../database/messages";
 
 const C = {
   bg: "#071018",
@@ -13,18 +23,52 @@ const C = {
   purple: "#8B5CF6",
 };
 
-export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall, openVideoCall }) {
+export default function ChatScreen({
+  goBack,
+  nodeId = "Alpha-01",
+  openVoiceCall,
+  openVideoCall,
+}) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const scrollRef = React.useRef(null);
+  const [messages, setMessages] = useState([]);
+  const scrollRef = useRef(null);
 
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Secure channel opened.", mine: false, time: "10:24" },
-    { id: 2, text: "Shadow Box online.", mine: true, time: "10:25" },
-  ]);
+  useEffect(() => {
+    async function loadChat() {
+      try {
+        const savedMessages = await getMessages(nodeId);
+        console.log("Loaded messages:", savedMessages);
 
-  function sendMessage() {
+        if (savedMessages.length > 0) {
+          setMessages(savedMessages);
+        } else {
+          setMessages([
+            {
+              id: "starter-1",
+              text: "Secure channel opened.",
+              mine: false,
+              time: "10:24",
+            },
+            {
+              id: "starter-2",
+              text: "Shadow Box online.",
+              mine: true,
+              time: "10:25",
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("❌ Load failed:", err);
+      }
+    }
+
+    loadChat();
+  }, [nodeId]);
+
+  async function sendMessage() {
     const text = message.trim();
+
     if (!text) return;
 
     const now = new Date().toLocaleTimeString([], {
@@ -32,17 +76,28 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
       minute: "2-digit",
     });
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
+    const newMessage = {
+      id: Date.now(),
+      text,
+      mine: true,
+      time: now,
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setMessage("");
+
+    try {
+      await saveMessage({
+        nodeId,
         text,
         mine: true,
         time: now,
-      },
-    ]);
+      });
 
-    setMessage("");
+      console.log("✅ Message saved to SQLite");
+    } catch (err) {
+      console.error("❌ Save failed:", err);
+    }
   }
 
   return (
@@ -75,7 +130,13 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
         <Text style={styles.secureText}>End-to-end encrypted</Text>
       </View>
 
-      <View style={styles.messages}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.messages}
+        onContentSizeChange={() =>
+          scrollRef.current?.scrollToEnd({ animated: true })
+        }
+      >
         <Text style={styles.day}>Today</Text>
 
         {messages.map((item) => (
@@ -92,7 +153,7 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
             </Text>
           </View>
         ))}
-      </View>
+      </ScrollView>
 
       <View style={styles.inputBar}>
         <TouchableOpacity style={styles.squareBtn} onPress={() => setOpen(true)}>
@@ -123,8 +184,20 @@ export default function ChatScreen({ goBack, nodeId = "Alpha-01", openVoiceCall,
         <Pressable style={styles.overlay} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet}>
             <View style={styles.handle} />
-            <Menu title="Voice Call" color={C.green} icon="phone" onPress={openVoiceCall} />
-            <Menu title="Video Call" color={C.purple} icon="video" onPress={openVideoCall} />
+
+            <Menu
+              title="Voice Call"
+              color={C.green}
+              icon="phone"
+              onPress={openVoiceCall}
+            />
+
+            <Menu
+              title="Video Call"
+              color={C.purple}
+              icon="video"
+              onPress={openVideoCall}
+            />
           </Pressable>
         </Pressable>
       )}
@@ -138,6 +211,7 @@ function Menu({ title, color, icon, onPress }) {
       <View style={[styles.menuDot, { backgroundColor: color }]}>
         <Feather name={icon} size={16} color="white" />
       </View>
+
       <Text style={styles.menuText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -145,6 +219,7 @@ function Menu({ title, color, icon, onPress }) {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: C.bg },
+
   header: {
     paddingTop: 52,
     paddingHorizontal: 16,
@@ -155,6 +230,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 11,
   },
+
   avatar: {
     width: 42,
     height: 42,
@@ -165,9 +241,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   avatarText: { color: C.blue, fontWeight: "900", fontSize: 18 },
+
   name: { color: C.text, fontSize: 19, fontWeight: "900" },
+
   online: { color: C.green, fontSize: 12, marginTop: 2 },
+
   secure: {
     alignSelf: "center",
     marginTop: 12,
@@ -181,8 +261,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 7,
   },
+
   secureText: { color: C.muted, fontSize: 12 },
-  messages: { flex: 1, padding: 18, paddingTop: 20 },
+
+  messages: {
+    flex: 1,
+    padding: 18,
+    paddingTop: 20,
+  },
+
   day: {
     alignSelf: "center",
     color: C.muted,
@@ -193,6 +280,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 12,
   },
+
   otherBubble: {
     alignSelf: "flex-start",
     backgroundColor: C.card,
@@ -201,6 +289,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     maxWidth: "78%",
   },
+
   myBubble: {
     alignSelf: "flex-end",
     backgroundColor: C.blue,
@@ -209,10 +298,25 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     maxWidth: "78%",
   },
+
   msgText: { color: C.text, fontSize: 15 },
+
   myText: { color: "white", fontSize: 15, fontWeight: "700" },
-  msgTime: { color: C.muted, fontSize: 11, marginTop: 6, alignSelf: "flex-end" },
-  myTime: { color: "rgba(255,255,255,0.75)", fontSize: 11, marginTop: 6, alignSelf: "flex-end" },
+
+  msgTime: {
+    color: C.muted,
+    fontSize: 11,
+    marginTop: 6,
+    alignSelf: "flex-end",
+  },
+
+  myTime: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 11,
+    marginTop: 6,
+    alignSelf: "flex-end",
+  },
+
   inputBar: {
     minHeight: 82,
     paddingHorizontal: 12,
@@ -222,6 +326,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+
   squareBtn: {
     width: 44,
     height: 44,
@@ -232,6 +337,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   inputWrap: {
     flex: 1,
     height: 44,
@@ -242,7 +348,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 13,
   },
+
   input: { color: C.text, fontSize: 15 },
+
   sendBtn: {
     width: 44,
     height: 44,
@@ -251,12 +359,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   overlay: {
     position: "absolute",
     inset: 0,
     backgroundColor: "rgba(0,0,0,0.55)",
     justifyContent: "flex-end",
   },
+
   sheet: {
     marginHorizontal: 14,
     marginBottom: 96,
@@ -267,6 +377,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingTop: 10,
   },
+
   handle: {
     width: 46,
     height: 4,
@@ -276,6 +387,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 8,
   },
+
   menu: {
     height: 64,
     flexDirection: "row",
@@ -284,6 +396,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.06)",
   },
+
   menuDot: {
     width: 34,
     height: 34,
@@ -292,5 +405,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   menuText: { color: C.text, fontSize: 17, fontWeight: "800" },
 });

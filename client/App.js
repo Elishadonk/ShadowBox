@@ -14,16 +14,9 @@ export default function App() {
   const [nodeId, setNodeId] = useState("Alpha-01");
 
   useEffect(() => {
-    async function setup() {
-      try {
-        await initDatabase();
-        console.log("✅ Shadow Box database ready");
-      } catch (err) {
-        console.error("Database initialization failed:", err);
-      }
-    }
-
-    setup();
+    initDatabase()
+      .then(() => console.log("Shadow Box database ready"))
+      .catch((err) => console.error("Database failed:", err));
   }, []);
 
   const openChat = (id) => {
