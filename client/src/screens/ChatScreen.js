@@ -9,8 +9,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
 import { getMessages, saveMessage } from "../database/messages";
 import { getContacts } from "../database/contacts";
@@ -23,8 +25,9 @@ const C = {
   muted: "#8793A0",
   blue: "#2F80ED",
   green: "#4CD964",
-  purple: "#8B5CF6",
 };
+
+const IMAGE_PREFIX = "IMAGE::";
 
 export default function ChatScreen({
   goBack,
@@ -82,9 +85,13 @@ export default function ChatScreen({
 
   async function sendMessage() {
     const text = message.trim();
-
     if (!text) return;
 
+    await addMessage(text);
+    setMessage("");
+  }
+
+  async function addMessage(text) {
     const now = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -98,7 +105,6 @@ export default function ChatScreen({
     };
 
     setMessages((prev) => [...prev, newMessage]);
-    setMessage("");
 
     try {
       await saveMessage({
@@ -110,6 +116,40 @@ export default function ChatScreen({
     } catch (err) {
       console.error("❌ Save failed:", err);
     }
+  }
+
+  async function pickImage() {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        setOpen(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        await addMessage(`${IMAGE_PREFIX}${imageUri}`);
+      }
+
+      setOpen(false);
+    } catch (err) {
+      console.error("Image picker failed:", err);
+      setOpen(false);
+    }
+  }
+
+  function isImageMessage(text) {
+    return text.startsWith(IMAGE_PREFIX);
+  }
+
+  function getImageUri(text) {
+    return text.replace(IMAGE_PREFIX, "");
   }
 
   const title = contactName || nodeId;
@@ -172,9 +212,16 @@ export default function ChatScreen({
             key={item.id}
             style={item.mine ? styles.myBubble : styles.otherBubble}
           >
-            <Text style={item.mine ? styles.myText : styles.msgText}>
-              {item.text}
-            </Text>
+            {isImageMessage(item.text) ? (
+              <Image
+                source={{ uri: getImageUri(item.text) }}
+                style={styles.chatImage}
+              />
+            ) : (
+              <Text style={item.mine ? styles.myText : styles.msgText}>
+                {item.text}
+              </Text>
+            )}
 
             <Text style={item.mine ? styles.myTime : styles.msgTime}>
               {item.mine ? `${item.time} ✓✓` : item.time}
@@ -214,17 +261,10 @@ export default function ChatScreen({
             <View style={styles.handle} />
 
             <Menu
-              title="Voice Call"
-              color={C.green}
-              icon="phone"
-              onPress={openVoiceCall}
-            />
-
-            <Menu
-              title="Video Call"
-              color={C.purple}
-              icon="video"
-              onPress={openVideoCall}
+              title="Upload Picture"
+              color={C.blue}
+              icon="image"
+              onPress={pickImage}
             />
           </Pressable>
         </Pressable>
@@ -332,6 +372,13 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 14,
     maxWidth: "78%",
+  },
+
+  chatImage: {
+    width: 220,
+    height: 220,
+    borderRadius: 14,
+    backgroundColor: C.border,
   },
 
   msgText: { color: C.text, fontSize: 15 },
