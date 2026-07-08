@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 const C = {
@@ -9,13 +15,29 @@ const C = {
   text: "#F4F7FB",
   muted: "#8793A0",
   blue: "#2F80ED",
-  green: "#4CD964",
+  red: "#EF4444",
 };
-
-const RECENTS = ["Alpha-01", "Bravo-02", "Charlie-03"];
 
 export default function NewChatScreen({ goBack, openChat }) {
   const [nodeId, setNodeId] = useState("");
+  const [error, setError] = useState("");
+
+  function formatNodeId(value) {
+    const numbers = value.replace(/\D/g, "").slice(0, 6);
+    return numbers ? `SBX-${numbers}` : "";
+  }
+
+  function startChat() {
+    const formatted = formatNodeId(nodeId);
+
+    if (formatted.length !== 10) {
+      setError("Enter a valid Node ID like SBX-482731");
+      return;
+    }
+
+    setError("");
+    openChat(formatted);
+  }
 
   return (
     <View style={styles.page}>
@@ -29,44 +51,40 @@ export default function NewChatScreen({ goBack, openChat }) {
         <View style={{ width: 30 }} />
       </View>
 
-      <Text style={styles.sub}>Enter a Node ID or select recent</Text>
+      <Text style={styles.sub}>Enter a permanent Shadow Box Node ID</Text>
 
       <View style={styles.inputBox}>
         <Feather name="hash" size={18} color={C.muted} />
         <TextInput
-          placeholder="Example: Alpha-01"
+          placeholder="SBX-482731"
           placeholderTextColor={C.muted}
           style={styles.input}
           value={nodeId}
-          onChangeText={setNodeId}
+          onChangeText={(text) => {
+            setNodeId(formatNodeId(text));
+            setError("");
+          }}
+          keyboardType="number-pad"
+          maxLength={10}
         />
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => openChat(nodeId)}>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <TouchableOpacity style={styles.button} onPress={startChat}>
         <Feather name="message-circle" size={18} color="white" />
         <Text style={styles.buttonText}>Open Chat</Text>
       </TouchableOpacity>
 
-      <Text style={styles.section}>Recent Nodes</Text>
-
-      <FlatList
-        data={RECENTS}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.node} onPress={() => openChat(item)}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item[0]}</Text>
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nodeText}>{item}</Text>
-              <Text style={styles.nodeSub}>Tap to open chat</Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color={C.muted} />
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.infoBox}>
+        <Feather name="shield" size={20} color={C.blue} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.infoTitle}>Node ID Required</Text>
+          <Text style={styles.infoText}>
+            Every Shadow Box chat starts with a permanent Node ID.
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -93,6 +111,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   input: { flex: 1, color: C.text, fontSize: 15 },
+  error: {
+    color: C.red,
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: "700",
+  },
   button: {
     height: 52,
     backgroundColor: C.blue,
@@ -104,32 +128,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: { color: "white", fontWeight: "900", fontSize: 15 },
-  section: {
-    color: C.text,
-    fontWeight: "900",
-    fontSize: 16,
+  infoBox: {
     marginTop: 30,
-    marginBottom: 10,
-  },
-  node: {
-    height: 72,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.07)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     backgroundColor: C.card,
     borderWidth: 1,
     borderColor: C.border,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: "row",
+    gap: 12,
   },
-  avatarText: { color: C.blue, fontWeight: "900" },
-  nodeText: { color: C.text, fontSize: 16, fontWeight: "800" },
-  nodeSub: { color: C.muted, fontSize: 12, marginTop: 3 },
+  infoTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  infoText: {
+    color: C.muted,
+    fontSize: 13,
+    lineHeight: 20,
+  },
 });
