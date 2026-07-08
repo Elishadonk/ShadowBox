@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 
@@ -114,7 +116,11 @@ export default function ChatScreen({
   const subtitle = contactName ? nodeId : "● Online";
 
   return (
-    <View style={styles.page}>
+    <KeyboardAvoidingView
+      style={styles.page}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack}>
           <Ionicons name="chevron-back" size={32} color={C.blue} />
@@ -154,6 +160,7 @@ export default function ChatScreen({
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
+        keyboardShouldPersistTaps="handled"
         onContentSizeChange={() =>
           scrollRef.current?.scrollToEnd({ animated: true })
         }
@@ -222,7 +229,7 @@ export default function ChatScreen({
           </Pressable>
         </Pressable>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -353,6 +360,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    backgroundColor: C.bg,
   },
 
   squareBtn: {
@@ -368,7 +376,7 @@ const styles = StyleSheet.create({
 
   inputWrap: {
     flex: 1,
-    height: 44,
+    minHeight: 44,
     backgroundColor: C.card,
     borderWidth: 1,
     borderColor: C.border,
