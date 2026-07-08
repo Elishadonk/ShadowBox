@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,15 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Pressable,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
+
+import {
+  getContacts,
+  saveContact,
+  deleteContact,
+} from "../database/contacts";
 
 const COLORS = {
   bg: "#071018",
@@ -17,19 +24,67 @@ const COLORS = {
   muted: "#8793A0",
   blue: "#2F80ED",
   green: "#4CD964",
+  red: "#EF4444",
 };
-
-const CONTACTS = [
-  { id: "SBX-1001", name: "Alpha-01", online: true },
-  { id: "SBX-1002", name: "Bravo-02", online: false },
-  { id: "SBX-1003", name: "Charlie-03", online: true },
-  { id: "SBX-1004", name: "Delta-04", online: true },
-];
 
 export default function ContactsScreen({ goBack, openChat }) {
   const [search, setSearch] = useState("");
+  const [contacts, setContacts] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newNodeId, setNewNodeId] = useState("");
+  const [newName, setNewName] = useState("");
 
-  const data = CONTACTS.filter(
+  useEffect(() => {
+    loadContacts();
+  }, []);
+
+  async function loadContacts() {
+    try {
+      const savedContacts = await getContacts();
+      setContacts(savedContacts);
+    } catch (err) {
+      console.error("Failed to load contacts:", err);
+    }
+  }
+
+  function formatNodeId(value) {
+    const numbers = value.replace(/\D/g, "").slice(0, 6);
+    return numbers ? `SBX-${numbers}` : "";
+  }
+
+  async function addContact() {
+    const nodeId = formatNodeId(newNodeId);
+    const name = newName.trim() || nodeId;
+
+    if (nodeId.length !== 10) return;
+
+    try {
+      await saveContact({
+        nodeId,
+        name,
+        online: false,
+      });
+
+      setNewNodeId("");
+      setNewName("");
+      setShowAdd(false);
+
+      await loadContacts();
+    } catch (err) {
+      console.error("Failed to save contact:", err);
+    }
+  }
+
+  async function removeContact(nodeId) {
+    try {
+      await deleteContact(nodeId);
+      await loadContacts();
+    } catch (err) {
+      console.error("Failed to delete contact:", err);
+    }
+  }
+
+  const data = contacts.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.id.toLowerCase().includes(search.toLowerCase())
@@ -37,31 +92,20 @@ export default function ContactsScreen({ goBack, openChat }) {
 
   return (
     <View style={styles.container}>
-
-      {/* Header */}
-
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack}>
-          <Ionicons
-            name="chevron-back"
-            size={30}
-            color={COLORS.blue}
-          />
+          <Ionicons name="chevron-back" size={30} color={COLORS.blue} />
         </TouchableOpacity>
 
         <Text style={styles.title}>Contacts</Text>
 
-        <View style={{ width: 30 }} />
+        <TouchableOpacity onPress={() => setShowAdd(true)}>
+          <Feather name="plus" size={26} color={COLORS.blue} />
+        </TouchableOpacity>
       </View>
 
-      {/* Search */}
-
       <View style={styles.search}>
-        <Feather
-          name="search"
-          size={18}
-          color={COLORS.muted}
-        />
+        <Feather name="search" size={18} color={COLORS.muted} />
 
         <TextInput
           placeholder="Search name or Node ID..."
@@ -72,38 +116,31 @@ export default function ContactsScreen({ goBack, openChat }) {
         />
       </View>
 
-      {/* List */}
-
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No contacts yet. Press + to add one.</Text>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.contact}
-            onPress={() => openChat(item.name)}
+            onPress={() => openChat(item.id)}
+            onLongPress={() => removeContact(item.id)}
           >
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {item.name.charAt(0)}
-              </Text>
+              <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>
-                {item.name}
-              </Text>
-
-              <Text style={styles.node}>
-                {item.id}
-              </Text>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.node}>{item.id}</Text>
             </View>
 
             <View style={{ alignItems: "flex-end" }}>
               <Text
                 style={{
-                  color: item.online
-                    ? COLORS.green
-                    : COLORS.muted,
+                  color: item.online ? COLORS.green : COLORS.muted,
                   fontSize: 12,
                 }}
               >
@@ -121,6 +158,50 @@ export default function ContactsScreen({ goBack, openChat }) {
         )}
       />
 
+      {showAdd && (
+        <Pressable style={styles.overlay} onPress={() => setShowAdd(false)}>
+          <Pressable style={styles.sheet}>
+            <View style={styles.handle} />
+
+            <Text style={styles.sheetTitle}>Add Contact</Text>
+
+            <Text style={styles.label}>Node ID</Text>
+            <TextInput
+              placeholder="SBX-482731"
+              placeholderTextColor={COLORS.muted}
+              style={styles.field}
+              value={newNodeId}
+              onChangeText={(text) => setNewNodeId(formatNodeId(text))}
+              keyboardType="number-pad"
+              maxLength={10}
+            />
+
+            <Text style={styles.label}>Display Name</Text>
+            <TextInput
+              placeholder="Optional"
+              placeholderTextColor={COLORS.muted}
+              style={styles.field}
+              value={newName}
+              onChangeText={setNewName}
+            />
+
+            <TouchableOpacity style={styles.addBtn} onPress={addContact}>
+              <Text style={styles.addBtnText}>Save Contact</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setShowAdd(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.hint}>
+              Long press a contact to delete it.
+            </Text>
+          </Pressable>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -198,5 +279,99 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     marginTop: 3,
     fontSize: 12,
+  },
+
+  empty: {
+    color: COLORS.muted,
+    textAlign: "center",
+    marginTop: 40,
+    lineHeight: 22,
+  },
+
+  overlay: {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+
+  sheet: {
+    marginHorizontal: 14,
+    marginBottom: 24,
+    backgroundColor: "#121B24",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 18,
+  },
+
+  handle: {
+    width: 46,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: COLORS.muted,
+    opacity: 0.6,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+
+  sheetTitle: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: "900",
+    marginBottom: 18,
+  },
+
+  label: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+
+  field: {
+    height: 50,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    color: COLORS.text,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+
+  addBtn: {
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: COLORS.blue,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+
+  addBtnText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+
+  cancelBtn: {
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+
+  cancelText: {
+    color: COLORS.muted,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  hint: {
+    color: COLORS.muted,
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 8,
   },
 });

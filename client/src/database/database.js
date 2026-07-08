@@ -22,5 +22,12 @@ export async function initDatabase() {
       time TEXT NOT NULL,
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS contacts (
+      node_id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      online INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
   `);
 }
