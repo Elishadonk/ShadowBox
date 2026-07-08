@@ -11,6 +11,7 @@ import {
 import { Ionicons, Feather } from "@expo/vector-icons";
 
 import { getMessages, saveMessage } from "../database/messages";
+import { getContacts } from "../database/contacts";
 
 const C = {
   bg: "#071018",
@@ -25,46 +26,57 @@ const C = {
 
 export default function ChatScreen({
   goBack,
-  nodeId = "Alpha-01",
+  nodeId = "SBX-482731",
   openVoiceCall,
   openVideoCall,
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [contactName, setContactName] = useState("");
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    async function loadChat() {
-      try {
-        const savedMessages = await getMessages(nodeId);
-        console.log("Loaded messages:", savedMessages);
-
-        if (savedMessages.length > 0) {
-          setMessages(savedMessages);
-        } else {
-          setMessages([
-            {
-              id: "starter-1",
-              text: "Secure channel opened.",
-              mine: false,
-              time: "10:24",
-            },
-            {
-              id: "starter-2",
-              text: "Shadow Box online.",
-              mine: true,
-              time: "10:25",
-            },
-          ]);
-        }
-      } catch (err) {
-        console.error("❌ Load failed:", err);
-      }
-    }
-
     loadChat();
+    loadContactName();
   }, [nodeId]);
+
+  async function loadContactName() {
+    try {
+      const contacts = await getContacts();
+      const contact = contacts.find((item) => item.id === nodeId);
+      setContactName(contact ? contact.name : "");
+    } catch (err) {
+      console.error("Failed to load contact name:", err);
+    }
+  }
+
+  async function loadChat() {
+    try {
+      const savedMessages = await getMessages(nodeId);
+
+      if (savedMessages.length > 0) {
+        setMessages(savedMessages);
+      } else {
+        setMessages([
+          {
+            id: "starter-1",
+            text: "Secure channel opened.",
+            mine: false,
+            time: "10:24",
+          },
+          {
+            id: "starter-2",
+            text: "Shadow Box online.",
+            mine: true,
+            time: "10:25",
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error("❌ Load failed:", err);
+    }
+  }
 
   async function sendMessage() {
     const text = message.trim();
@@ -93,12 +105,13 @@ export default function ChatScreen({
         mine: true,
         time: now,
       });
-
-      console.log("✅ Message saved to SQLite");
     } catch (err) {
       console.error("❌ Save failed:", err);
     }
   }
+
+  const title = contactName || nodeId;
+  const subtitle = contactName ? nodeId : "● Online";
 
   return (
     <View style={styles.page}>
@@ -108,12 +121,20 @@ export default function ChatScreen({
         </TouchableOpacity>
 
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{nodeId[0]}</Text>
+          <Text style={styles.avatarText}>{title.charAt(0)}</Text>
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{nodeId}</Text>
-          <Text style={styles.online}>● Online</Text>
+          <Text style={styles.name}>{title}</Text>
+
+          {contactName ? (
+            <>
+              <Text style={styles.nodeId}>{subtitle}</Text>
+              <Text style={styles.online}>● Online</Text>
+            </>
+          ) : (
+            <Text style={styles.online}>{subtitle}</Text>
+          )}
         </View>
 
         <TouchableOpacity onPress={openVoiceCall}>
@@ -244,7 +265,14 @@ const styles = StyleSheet.create({
 
   avatarText: { color: C.blue, fontWeight: "900", fontSize: 18 },
 
-  name: { color: C.text, fontSize: 19, fontWeight: "900" },
+  name: { color: C.text, fontSize: 18, fontWeight: "900" },
+
+  nodeId: {
+    color: C.blue,
+    fontSize: 11,
+    fontWeight: "800",
+    marginTop: 2,
+  },
 
   online: { color: C.green, fontSize: 12, marginTop: 2 },
 

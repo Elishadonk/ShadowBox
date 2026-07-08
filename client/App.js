@@ -6,12 +6,13 @@ import ChatScreen from "./src/screens/ChatScreen";
 import VoiceCallScreen from "./src/screens/VoiceCallScreen";
 import VideoCallScreen from "./src/screens/VideoCallScreen";
 import ContactsScreen from "./src/screens/ContactsScreen";
+import NodeScreen from "./src/screens/NodeScreen";
 
 import { initDatabase } from "./src/database/database";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
-  const [nodeId, setNodeId] = useState("Alpha-01");
+  const [nodeId, setNodeId] = useState("SBX-482731");
 
   useEffect(() => {
     initDatabase()
@@ -20,7 +21,7 @@ export default function App() {
   }, []);
 
   const openChat = (id) => {
-    setNodeId(id || "Alpha-01");
+    setNodeId(id || "SBX-482731");
     setScreen("chat");
   };
 
@@ -44,12 +45,11 @@ export default function App() {
   }
 
   if (screen === "contacts") {
-    return (
-      <ContactsScreen
-        goBack={() => setScreen("home")}
-        openChat={openChat}
-      />
-    );
+    return <ContactsScreen goBack={() => setScreen("home")} openChat={openChat} />;
+  }
+
+  if (screen === "node") {
+    return <NodeScreen goBack={() => setScreen("home")} />;
   }
 
   if (screen === "newchat") {
@@ -65,6 +65,7 @@ export default function App() {
     <HomeScreen
       openNewChat={() => setScreen("newchat")}
       openContacts={() => setScreen("contacts")}
+      openNode={() => setScreen("node")}
       openChat={openChat}
     />
   );

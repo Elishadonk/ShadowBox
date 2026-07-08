@@ -21,7 +21,12 @@ const C = {
   orange: "#F59E0B",
 };
 
-export default function HomeScreen({ openNewChat, openContacts, openChat }) {
+export default function HomeScreen({
+  openNewChat,
+  openContacts,
+  openNode,
+  openChat,
+}) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [chats, setChats] = useState([]);
@@ -39,9 +44,14 @@ export default function HomeScreen({ openNewChat, openContacts, openChat }) {
     }
   }
 
-  const filteredChats = chats.filter((chat) =>
-    chat.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredChats = chats.filter((chat) => {
+    const query = search.toLowerCase();
+
+    return (
+      chat.name.toLowerCase().includes(query) ||
+      chat.nodeId.toLowerCase().includes(query)
+    );
+  });
 
   return (
     <View style={styles.page}>
@@ -56,7 +66,7 @@ export default function HomeScreen({ openNewChat, openContacts, openChat }) {
       <View style={styles.search}>
         <Feather name="search" size={18} color={C.muted} />
         <TextInput
-          placeholder="Search Node ID"
+          placeholder="Search name or Node ID"
           placeholderTextColor={C.muted}
           style={styles.searchInput}
           value={search}
@@ -78,13 +88,17 @@ export default function HomeScreen({ openNewChat, openContacts, openChat }) {
           <TouchableOpacity
             key={chat.id}
             style={styles.chatRow}
-            onPress={() => openChat(chat.id)}
+            onPress={() => openChat(chat.nodeId)}
           >
             <View style={{ flex: 1 }}>
-              <Text style={styles.chatName}>{chat.id}</Text>
+              <Text style={styles.chatName}>{chat.name}</Text>
+
+              <Text style={styles.nodeId}>{chat.nodeId}</Text>
+
               <Text style={styles.lastMessage} numberOfLines={1}>
                 {chat.lastMessage}
               </Text>
+
               <Text style={styles.chatStatus}>● {chat.status}</Text>
             </View>
 
@@ -103,9 +117,9 @@ export default function HomeScreen({ openNewChat, openContacts, openChat }) {
           <Text style={styles.navActive}>NETWORK</Text>
         </View>
 
-        <TouchableOpacity style={styles.navItem} onPress={openContacts}>
-          <Feather name="users" size={20} color={C.muted} />
-          <Text style={styles.navText}>CONTACTS</Text>
+        <TouchableOpacity style={styles.navItem} onPress={openNode}>
+          <Feather name="cpu" size={20} color={C.muted} />
+          <Text style={styles.navText}>NODE</Text>
         </TouchableOpacity>
       </View>
 
@@ -131,6 +145,16 @@ export default function HomeScreen({ openNewChat, openContacts, openChat }) {
               onPress={() => {
                 setOpen(false);
                 openContacts();
+              }}
+            />
+
+            <Menu
+              title="My Node"
+              color={C.green}
+              icon="cpu"
+              onPress={() => {
+                setOpen(false);
+                openNode();
               }}
             />
           </Pressable>
@@ -191,7 +215,7 @@ const styles = StyleSheet.create({
   },
 
   chatRow: {
-    minHeight: 82,
+    minHeight: 92,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.07)",
     flexDirection: "row",
@@ -199,13 +223,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  chatName: { color: C.text, fontSize: 16, fontWeight: "800" },
+  chatName: { color: C.text, fontSize: 16, fontWeight: "900" },
+
+  nodeId: {
+    color: C.blue,
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 3,
+  },
+
   lastMessage: {
     color: C.muted,
     fontSize: 13,
     marginTop: 4,
     maxWidth: "90%",
   },
+
   chatStatus: { color: C.green, fontSize: 12, marginTop: 4 },
   time: { color: C.muted, fontSize: 12, marginLeft: 8 },
 
