@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import {
   View,
   Text,
@@ -12,8 +18,10 @@ import {
   Image,
   Modal,
 } from "react-native";
+
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+
 import {
   AudioModule,
   RecordingPresets,
@@ -23,8 +31,20 @@ import {
   createAudioPlayer,
 } from "expo-audio";
 
-import { getMessages, saveMessage } from "../database/messages";
+import {
+  getMessages,
+  saveMessage,
+} from "../database/messages";
+
 import { getContacts } from "../database/contacts";
+
+/*
+  Messages remain in memory while Shadow Box is running.
+
+  When a chat is reopened, cached messages display immediately.
+  SQLite refreshes silently in the background.
+*/
+const chatCache = new Map();
 
 const C = {
   bg: "#101722",
@@ -41,32 +61,163 @@ const C = {
   whiteSoft: "#F7FAFC",
 };
 
+function createStarterMessages() {
+  return [
+    {
+      id: "starter-1",
+      type: "text",
+      content: "Secure channel opened.",
+      text: "Secure channel opened.",
+      mine: false,
+      time: "10:24",
+    },
+    {
+      id: "starter-2",
+      type: "text",
+      content: "Shadow Box online.",
+      text: "Shadow Box online.",
+      mine: true,
+      time: "10:25",
+    },
+  ];
+}
+
 export default function ChatScreen({
   goBack,
   nodeId = "SBX-482731",
   openVoiceCall,
   openVideoCall,
 }) {
-  const [open, setOpen] = useState(false);
+  /*
+    The first render reads directly from RAM.
+    It does not wait for SQLite.
+  */
+  const [messages, setMessages] = useState(
+    () => chatCache.get(nodeId) || []
+  );
+
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
   const [contactName, setContactName] = useState("");
+  const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [playingVoice, setPlayingVoice] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
   const listRef = useRef(null);
   const playerRef = useRef(null);
   const playbackTimerRef = useRef(null);
+  const firstLayoutRef = useRef(true);
 
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(audioRecorder);
+  const audioRecorder = useAudioRecorder(
+    RecordingPresets.HIGH_QUALITY
+  );
 
+  const recorderState =
+    useAudioRecorderState(audioRecorder);
+
+  /*
+    Immediately display cached content whenever nodeId changes,
+    then refresh quietly from SQLite.
+  */
   useEffect(() => {
-    loadChat();
-    loadContactName();
+    let cancelled = false;
+
+    const cachedMessages = chatCache.get(nodeId);
+
+    if (cachedMessages) {
+      setMessages(cachedMessages);
+    } else {
+      setMessages([]);
+    }
+
+    async function refreshChat() {
+      try {
+        /*
+          Passing 50 works with an upgraded getMessages(nodeId, limit).
+          If your older function only accepts nodeId, JavaScript safely
+          ignores the additional argument.
+        */
+        const savedMessages = await getMessages(nodeId, 50);
+
+        if (cancelled) return;
+
+        const nextMessages =
+          savedMessages.length > 0
+            ? savedMessages
+            : cachedMessages || createStarterMessages();
+
+        chatCache.set(nodeId, nextMessages);
+        setMessages(nextMessages);
+      } catch (error) {
+        console.error("Chat refresh failed:", error);
+
+        if (!cancelled && !cachedMessages) {
+          const starterMessages = createStarterMessages();
+
+          chatCache.set(nodeId, starterMessages);
+          setMessages(starterMessages);
+        }
+      }
+    }
+
+    refreshChat();
+
+    return () => {
+      cancelled = true;
+    };
   }, [nodeId]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadContactName() {
+      try {
+        const contacts = await getContacts();
+
+        if (cancelled) return;
+
+        const contact = contacts.find(
+          (item) =>
+            item.id === nodeId ||
+            item.nodeId === nodeId ||
+            item.node_id === nodeId
+        );
+
+        setContactName(contact?.name || "");
+      } catch (error) {
+        console.error(
+          "Failed to load contact name:",
+          error
+        );
+      }
+    }
+
+    loadContactName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nodeId]);
+
+  useEffect(() => {
+    async function setupAudio() {
+      try {
+        const permission =
+          await AudioModule.requestRecordingPermissionsAsync();
+
+        if (!permission.granted) {
+          console.log("Microphone permission denied");
+          return;
+        }
+
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          allowsRecording: true,
+        });
+      } catch (error) {
+        console.error("Audio setup failed:", error);
+      }
+    }
+
     setupAudio();
 
     return () => {
@@ -77,78 +228,46 @@ export default function ChatScreen({
       if (playerRef.current) {
         try {
           playerRef.current.remove();
-        } catch (err) {
-          console.log("Player cleanup skipped:", err);
+        } catch (error) {
+          console.log(
+            "Audio player cleanup skipped:",
+            error
+          );
         }
+
+        playerRef.current = null;
       }
     };
   }, []);
 
-  async function setupAudio() {
-    try {
-      const permission = await AudioModule.requestRecordingPermissionsAsync();
+  /*
+    Every state update also updates the RAM cache.
+  */
+  const updateMessages = useCallback(
+    (updater) => {
+      setMessages((previousMessages) => {
+        const updatedMessages =
+          typeof updater === "function"
+            ? updater(previousMessages)
+            : updater;
 
-      if (!permission.granted) {
-        console.log("Microphone permission denied");
-        return;
-      }
+        chatCache.set(nodeId, updatedMessages);
 
-      await setAudioModeAsync({
-        playsInSilentMode: true,
-        allowsRecording: true,
+        return updatedMessages;
       });
-    } catch (err) {
-      console.error("Audio setup failed:", err);
-    }
-  }
-
-  async function loadContactName() {
-    try {
-      const contacts = await getContacts();
-      const contact = contacts.find((item) => item.id === nodeId);
-
-      setContactName(contact ? contact.name : "");
-    } catch (err) {
-      console.error("Failed to load contact name:", err);
-    }
-  }
-
-  async function loadChat() {
-    try {
-      const savedMessages = await getMessages(nodeId);
-
-      if (savedMessages.length > 0) {
-        setMessages(savedMessages);
-      } else {
-        setMessages([
-          {
-            id: "starter-1",
-            type: "text",
-            content: "Secure channel opened.",
-            text: "Secure channel opened.",
-            mine: false,
-            time: "10:24",
-          },
-          {
-            id: "starter-2",
-            type: "text",
-            content: "Shadow Box online.",
-            text: "Shadow Box online.",
-            mine: true,
-            time: "10:25",
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error("Load failed:", err);
-    }
-  }
+    },
+    [nodeId]
+  );
 
   async function sendMessage() {
     const text = message.trim();
 
     if (!text) return;
 
+    /*
+      Clear the input immediately.
+      Do not wait for SQLite.
+    */
     setMessage("");
 
     await addMessage({
@@ -158,7 +277,11 @@ export default function ChatScreen({
     });
   }
 
-  async function addMessage({ type = "text", content, text }) {
+  async function addMessage({
+    type = "text",
+    content,
+    text,
+  }) {
     const now = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -173,13 +296,19 @@ export default function ChatScreen({
       time: now,
     };
 
-    setMessages((previousMessages) => [
+    /*
+      Optimistic rendering:
+      show the message immediately before saving.
+    */
+    updateMessages((previousMessages) => [
       ...previousMessages,
       newMessage,
     ]);
 
     requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated: true });
+      listRef.current?.scrollToEnd({
+        animated: true,
+      });
     });
 
     try {
@@ -191,8 +320,8 @@ export default function ChatScreen({
         mine: true,
         time: now,
       });
-    } catch (err) {
-      console.error("Save failed:", err);
+    } catch (error) {
+      console.error("Message save failed:", error);
     }
   }
 
@@ -202,16 +331,20 @@ export default function ChatScreen({
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        setOpen(false);
+        setAttachmentOpen(false);
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: "images",
-        quality: 0.9,
-      });
+      const result =
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: "images",
+          quality: 0.9,
+        });
 
-      if (!result.canceled && result.assets?.length > 0) {
+      if (
+        !result.canceled &&
+        result.assets?.length > 0
+      ) {
         const imageUri = result.assets[0].uri;
 
         await addMessage({
@@ -220,11 +353,10 @@ export default function ChatScreen({
           text: "Picture",
         });
       }
-
-      setOpen(false);
-    } catch (err) {
-      console.error("Image picker failed:", err);
-      setOpen(false);
+    } catch (error) {
+      console.error("Image picker failed:", error);
+    } finally {
+      setAttachmentOpen(false);
     }
   }
 
@@ -237,8 +369,11 @@ export default function ChatScreen({
 
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
-    } catch (err) {
-      console.error("Recording start failed:", err);
+    } catch (error) {
+      console.error(
+        "Recording start failed:",
+        error
+      );
     }
   }
 
@@ -263,15 +398,18 @@ export default function ChatScreen({
         playsInSilentMode: true,
         allowsRecording: false,
       });
-    } catch (err) {
-      console.error("Recording stop failed:", err);
+    } catch (error) {
+      console.error(
+        "Recording stop failed:",
+        error
+      );
     }
   }
 
   async function playVoice(uri) {
-    try {
-      if (!uri) return;
+    if (!uri) return;
 
+    try {
       if (playbackTimerRef.current) {
         clearTimeout(playbackTimerRef.current);
       }
@@ -279,8 +417,11 @@ export default function ChatScreen({
       if (playerRef.current) {
         try {
           playerRef.current.remove();
-        } catch (err) {
-          console.log("Old player cleanup skipped:", err);
+        } catch (error) {
+          console.log(
+            "Old audio player cleanup skipped:",
+            error
+          );
         }
 
         playerRef.current = null;
@@ -302,21 +443,31 @@ export default function ChatScreen({
       playbackTimerRef.current = setTimeout(() => {
         setPlayingVoice(null);
       }, 5000);
-    } catch (err) {
-      console.error("Voice playback failed:", err);
+    } catch (error) {
+      console.error(
+        "Voice playback failed:",
+        error
+      );
+
       setPlayingVoice(null);
     }
   }
 
   function getMessageValue(item) {
-    return String(item.content || item.text || "");
+    return String(
+      item.content || item.text || ""
+    );
   }
 
   function renderMessageContent(item) {
     const value = getMessageValue(item);
     const imageUri = value.replace("IMAGE::", "");
 
-    if (item.type === "image" || value.startsWith("IMAGE::")) {
+    const isImage =
+      item.type === "image" ||
+      value.startsWith("IMAGE::");
+
+    if (isImage) {
       return (
         <TouchableOpacity
           activeOpacity={0.88}
@@ -325,41 +476,49 @@ export default function ChatScreen({
           <Image
             source={{ uri: imageUri }}
             style={styles.chatImage}
+            resizeMode="cover"
           />
         </TouchableOpacity>
       );
     }
 
     if (item.type === "voice") {
-      const isPlaying = playingVoice === item.content;
+      const isPlaying =
+        playingVoice === item.content;
 
       return (
         <TouchableOpacity
           style={styles.voiceBubble}
           activeOpacity={0.82}
-          onPress={() => playVoice(item.content)}
+          onPress={() =>
+            playVoice(item.content)
+          }
         >
           <View style={styles.voicePlayButton}>
             <Feather
-              name={isPlaying ? "pause" : "play"}
+              name={
+                isPlaying ? "pause" : "play"
+              }
               size={18}
               color="white"
             />
           </View>
 
           <View style={styles.waveform}>
-            {[12, 19, 27, 15, 30, 21, 13, 25, 17, 29, 15, 23].map(
-              (height, index) => (
-                <View
-                  key={`${item.id}-wave-${index}`}
-                  style={[
-                    styles.waveBar,
-                    { height },
-                    item.mine && styles.waveBarMine,
-                  ]}
-                />
-              )
-            )}
+            {[
+              12, 19, 27, 15, 30, 21,
+              13, 25, 17, 29, 15, 23,
+            ].map((height, index) => (
+              <View
+                key={`${item.id}-wave-${index}`}
+                style={[
+                  styles.waveBar,
+                  { height },
+                  item.mine &&
+                    styles.waveBarMine,
+                ]}
+              />
+            ))}
           </View>
 
           <Text
@@ -377,15 +536,19 @@ export default function ChatScreen({
 
     return (
       <Text
-        style={item.mine ? styles.myText : styles.msgText}
+        style={
+          item.mine
+            ? styles.myText
+            : styles.msgText
+        }
       >
         {item.content || item.text}
       </Text>
     );
   }
 
-  function renderMessage({ item }) {
-    return (
+  const renderMessage = useCallback(
+    ({ item }) => (
       <View
         style={
           item.mine
@@ -396,12 +559,31 @@ export default function ChatScreen({
         {renderMessageContent(item)}
 
         <Text
-          style={item.mine ? styles.myTime : styles.msgTime}
+          style={
+            item.mine
+              ? styles.myTime
+              : styles.msgTime
+          }
         >
-          {item.mine ? `${item.time}  ✓✓` : item.time}
+          {item.mine
+            ? `${item.time}  ✓✓`
+            : item.time}
         </Text>
       </View>
-    );
+    ),
+    [playingVoice]
+  );
+
+  function handleListLayout() {
+    if (!firstLayoutRef.current) return;
+
+    firstLayoutRef.current = false;
+
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd({
+        animated: false,
+      });
+    });
   }
 
   const title = contactName || nodeId;
@@ -409,7 +591,11 @@ export default function ChatScreen({
   return (
     <KeyboardAvoidingView
       style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : "height"
+      }
       keyboardVerticalOffset={0}
     >
       <View style={styles.header}>
@@ -431,15 +617,22 @@ export default function ChatScreen({
         </View>
 
         <View style={styles.headerText}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text
+            style={styles.name}
+            numberOfLines={1}
+          >
             {title}
           </Text>
 
           {contactName ? (
-            <Text style={styles.nodeId}>{nodeId}</Text>
+            <Text style={styles.nodeId}>
+              {nodeId}
+            </Text>
           ) : null}
 
-          <Text style={styles.online}>● Online</Text>
+          <Text style={styles.online}>
+            ● Online
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -467,10 +660,16 @@ export default function ChatScreen({
 
       <View style={styles.secure}>
         <Feather
-          name={recorderState.isRecording ? "mic" : "lock"}
+          name={
+            recorderState.isRecording
+              ? "mic"
+              : "lock"
+          }
           size={13}
           color={
-            recorderState.isRecording ? C.red : C.muted
+            recorderState.isRecording
+              ? C.red
+              : C.muted
           }
         />
 
@@ -491,30 +690,37 @@ export default function ChatScreen({
         ref={listRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item) =>
+          String(item.id)
+        }
         style={styles.messages}
-        contentContainerStyle={styles.messagesContent}
+        contentContainerStyle={
+          styles.messagesContent
+        }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
-        initialNumToRender={20}
-        maxToRenderPerBatch={15}
-        windowSize={7}
-        removeClippedSubviews={Platform.OS === "android"}
-        ListHeaderComponent={
-          <Text style={styles.day}>Today</Text>
+        initialNumToRender={15}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={16}
+        windowSize={5}
+        removeClippedSubviews={
+          Platform.OS === "android"
         }
-        onContentSizeChange={() => {
-          listRef.current?.scrollToEnd({
-            animated: false,
-          });
-        }}
+        ListHeaderComponent={
+          <Text style={styles.day}>
+            Today
+          </Text>
+        }
+        onLayout={handleListLayout}
       />
 
       <View style={styles.inputBar}>
         <TouchableOpacity
           style={styles.inputButton}
-          onPress={() => setOpen(true)}
+          onPress={() =>
+            setAttachmentOpen(true)
+          }
         >
           <Feather
             name="plus"
@@ -570,10 +776,12 @@ export default function ChatScreen({
         </TouchableOpacity>
       </View>
 
-      {open && (
+      {attachmentOpen && (
         <Pressable
           style={styles.overlay}
-          onPress={() => setOpen(false)}
+          onPress={() =>
+            setAttachmentOpen(false)
+          }
         >
           <Pressable style={styles.sheet}>
             <View style={styles.handle} />
@@ -603,7 +811,9 @@ export default function ChatScreen({
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={() => setPreviewImage(null)}
+        onRequestClose={() =>
+          setPreviewImage(null)
+        }
       >
         <View style={styles.preview}>
           <Image
@@ -613,7 +823,9 @@ export default function ChatScreen({
 
           <Pressable
             style={styles.previewClose}
-            onPress={() => setPreviewImage(null)}
+            onPress={() =>
+              setPreviewImage(null)
+            }
           >
             <Feather
               name="x"
@@ -805,7 +1017,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: C.panel2,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor:
+      "rgba(255,255,255,0.16)",
   },
 
   voiceBubble: {
@@ -978,7 +1191,8 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor:
+      "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },

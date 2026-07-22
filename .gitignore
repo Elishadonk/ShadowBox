@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+client/node_modules/
+livekit-server/node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+client/.env
+client/.env.*
+livekit-server/.env
+livekit-server/.env.*
+
+# Expo
+client/.expo/
+client/.expo-shared/
+client/dist/
+client/web-build/
+
+# Generated native projects
+client/android/
+client/ios/
+
+# EAS
+*.apk
+*.aab
+*.ipa
+
+# Build
+build/
+dist/
+
+# Logs
+*.log
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
