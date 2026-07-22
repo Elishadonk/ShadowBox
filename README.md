@@ -2,66 +2,32 @@
 
 ![App Icon](docs/screenshots/app-icon.png)
 
-A secure communication platform built with **React Native**, **Node.js**, **SQLite**, and **LiveKit**.
-
-## Overview
-
-Shadow Box is a modern communication platform focused on secure messaging, real-time communication, and a clean user experience. It includes permanent Shadow Node IDs, local-first storage, voice notes, image sharing, and voice/video calling.
-
-## Features
-
-- 🔐 Secure messaging
-- 🆔 Permanent Shadow Node IDs
-- 💬 Real-time chat
-- 🎤 Voice notes
-- 🖼️ Image sharing
-- 📞 Voice calls
-- 📹 Video calls
-- 👥 Contact management
-- 💾 SQLite local database
-- 🌐 Node.js backend
-- 📡 LiveKit integration
-
 ## Screenshots
 
 ### Splash Screen
 
-![Splash Screen](docs/screenshots/splash-screen.png)
+![Splash](docs/screenshots/splash-screen.jpg)
 
 ### Home Screen
 
-![Home Screen](docs/screenshots/home-screen.png)
+![Home](docs/screenshots/home-screen.jpg)
+
+### Home Menu
+
+![Home Menu](docs/screenshots/home-menu.jpg)
 
 ### Chat
 
-![Chat](docs/screenshots/chat-screen.png)
+![Chat](docs/screenshots/chat-screen.jpg)
 
 ### Contacts
 
-![Contacts](docs/screenshots/contacts.png)
+![Contacts](docs/screenshots/contacts.jpg)
 
 ### Add Contact
 
-![Add Contact](docs/screenshots/add-contact.png)
+![Add Contact](docs/screenshots/add-contact.jpg)
 
 ### My Node
 
-![My Node](docs/screenshots/my-node.png)
-
-## Tech Stack
-
-- React Native
-- JavaScript
-- Node.js
-- SQLite
-- LiveKit
-- Git
-- GitHub
-
-## Project Status
-
-🚧 Active development
-
-## Author
-
-**Simon Sunday**
+![My Node](docs/screenshots/my-node.jpg)
