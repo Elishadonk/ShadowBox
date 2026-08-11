@@ -40,9 +40,6 @@ import { getContacts } from "../database/contacts";
 
 /*
   Messages remain in memory while Shadow Box is running.
-
-  When a chat is reopened, cached messages display immediately.
-  SQLite refreshes silently in the background.
 */
 const chatCache = new Map();
 
@@ -88,23 +85,47 @@ export default function ChatScreen({
   openVoiceCall,
   openVideoCall,
 }) {
-  /*
-    The first render reads directly from RAM.
-    It does not wait for SQLite.
-  */
   const [messages, setMessages] = useState(
     () => chatCache.get(nodeId) || []
   );
 
   const [message, setMessage] = useState("");
   const [contactName, setContactName] = useState("");
-  const [attachmentOpen, setAttachmentOpen] = useState(false);
-  const [playingVoice, setPlayingVoice] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
+  const [attachmentOpen, setAttachmentOpen] =
+    useState(false);
+  const [playingVoice, setPlayingVoice] =
+    useState(null);
+  const [previewImage, setPreviewImage] =
+    useState(null);
 
   const listRef = useRef(null);
+
+  /*
+    ============================================================
+    VOICE PLAYBACK CONTROL
+    ============================================================
+
+    playerRef:
+      Holds the ONE AudioPlayer currently owned by this screen.
+
+    activeVoiceRef:
+      Holds the URI of the ONE voice that is allowed to play.
+
+    playbackRequestRef:
+      A numeric request ID.
+
+      Every tap creates a new request ID.
+      Old async operations become invalid immediately.
+
+    playerSubscriptionRef:
+      Holds the Expo Audio playback-status subscription so
+      it can be removed when the player is destroyed.
+  */
   const playerRef = useRef(null);
-  const playbackTimerRef = useRef(null);
+  const activeVoiceRef = useRef(null);
+  const playbackRequestRef = useRef(0);
+  const playerSubscriptionRef = useRef(null);
+
   const firstLayoutRef = useRef(true);
 
   const audioRecorder = useAudioRecorder(
@@ -115,8 +136,9 @@ export default function ChatScreen({
     useAudioRecorderState(audioRecorder);
 
   /*
-    Immediately display cached content whenever nodeId changes,
-    then refresh quietly from SQLite.
+    ============================================================
+    CHAT LOADING
+    ============================================================
   */
   useEffect(() => {
     let cancelled = false;
@@ -131,29 +153,34 @@ export default function ChatScreen({
 
     async function refreshChat() {
       try {
-        /*
-          Passing 50 works with an upgraded getMessages(nodeId, limit).
-          If your older function only accepts nodeId, JavaScript safely
-          ignores the additional argument.
-        */
-        const savedMessages = await getMessages(nodeId, 50);
+        const savedMessages =
+          await getMessages(nodeId, 50);
 
         if (cancelled) return;
 
         const nextMessages =
           savedMessages.length > 0
             ? savedMessages
-            : cachedMessages || createStarterMessages();
+            : cachedMessages ||
+              createStarterMessages();
 
         chatCache.set(nodeId, nextMessages);
         setMessages(nextMessages);
       } catch (error) {
-        console.error("Chat refresh failed:", error);
+        console.error(
+          "Chat refresh failed:",
+          error
+        );
 
         if (!cancelled && !cachedMessages) {
-          const starterMessages = createStarterMessages();
+          const starterMessages =
+            createStarterMessages();
 
-          chatCache.set(nodeId, starterMessages);
+          chatCache.set(
+            nodeId,
+            starterMessages
+          );
+
           setMessages(starterMessages);
         }
       }
@@ -166,6 +193,11 @@ export default function ChatScreen({
     };
   }, [nodeId]);
 
+  /*
+    ============================================================
+    CONTACT NAME
+    ============================================================
+  */
   useEffect(() => {
     let cancelled = false;
 
@@ -198,6 +230,11 @@ export default function ChatScreen({
     };
   }, [nodeId]);
 
+  /*
+    ============================================================
+    AUDIO SETUP
+    ============================================================
+  */
   useEffect(() => {
     async function setupAudio() {
       try {
@@ -205,7 +242,9 @@ export default function ChatScreen({
           await AudioModule.requestRecordingPermissionsAsync();
 
         if (!permission.granted) {
-          console.log("Microphone permission denied");
+          console.log(
+            "Microphone permission denied"
+          );
           return;
         }
 
@@ -214,34 +253,75 @@ export default function ChatScreen({
           allowsRecording: true,
         });
       } catch (error) {
-        console.error("Audio setup failed:", error);
+        console.error(
+          "Audio setup failed:",
+          error
+        );
       }
     }
 
     setupAudio();
 
+    /*
+      FULL PLAYBACK CLEANUP WHEN SCREEN CLOSES.
+    */
     return () => {
-      if (playbackTimerRef.current) {
-        clearTimeout(playbackTimerRef.current);
+      /*
+        Invalidate every pending async playback request.
+      */
+      playbackRequestRef.current += 1;
+
+      activeVoiceRef.current = null;
+
+      /*
+        Remove playback event listener.
+      */
+      if (playerSubscriptionRef.current) {
+        try {
+          playerSubscriptionRef.current.remove();
+        } catch (error) {
+          console.log(
+            "Playback listener cleanup skipped:",
+            error
+          );
+        }
+
+        playerSubscriptionRef.current = null;
       }
 
-      if (playerRef.current) {
+      /*
+        Remove the one active player.
+      */
+      const player = playerRef.current;
+
+      playerRef.current = null;
+
+      if (player) {
         try {
-          playerRef.current.remove();
+          player.pause();
+        } catch (error) {
+          console.log(
+            "Audio pause cleanup skipped:",
+            error
+          );
+        }
+
+        try {
+          player.remove();
         } catch (error) {
           console.log(
             "Audio player cleanup skipped:",
             error
           );
         }
-
-        playerRef.current = null;
       }
     };
   }, []);
 
   /*
-    Every state update also updates the RAM cache.
+    ============================================================
+    MESSAGE CACHE
+    ============================================================
   */
   const updateMessages = useCallback(
     (updater) => {
@@ -251,7 +331,10 @@ export default function ChatScreen({
             ? updater(previousMessages)
             : updater;
 
-        chatCache.set(nodeId, updatedMessages);
+        chatCache.set(
+          nodeId,
+          updatedMessages
+        );
 
         return updatedMessages;
       });
@@ -259,15 +342,16 @@ export default function ChatScreen({
     [nodeId]
   );
 
+  /*
+    ============================================================
+    SEND TEXT
+    ============================================================
+  */
   async function sendMessage() {
     const text = message.trim();
 
     if (!text) return;
 
-    /*
-      Clear the input immediately.
-      Do not wait for SQLite.
-    */
     setMessage("");
 
     await addMessage({
@@ -277,15 +361,23 @@ export default function ChatScreen({
     });
   }
 
+  /*
+    ============================================================
+    ADD MESSAGE
+    ============================================================
+  */
   async function addMessage({
     type = "text",
     content,
     text,
   }) {
-    const now = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const now = new Date().toLocaleTimeString(
+      [],
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
 
     const newMessage = {
       id: `local-${Date.now()}-${Math.random()}`,
@@ -297,8 +389,7 @@ export default function ChatScreen({
     };
 
     /*
-      Optimistic rendering:
-      show the message immediately before saving.
+      Optimistic UI.
     */
     updateMessages((previousMessages) => [
       ...previousMessages,
@@ -321,10 +412,18 @@ export default function ChatScreen({
         time: now,
       });
     } catch (error) {
-      console.error("Message save failed:", error);
+      console.error(
+        "Message save failed:",
+        error
+      );
     }
   }
 
+  /*
+    ============================================================
+    IMAGE PICKER
+    ============================================================
+  */
   async function pickImage() {
     try {
       const permission =
@@ -345,7 +444,8 @@ export default function ChatScreen({
         !result.canceled &&
         result.assets?.length > 0
       ) {
-        const imageUri = result.assets[0].uri;
+        const imageUri =
+          result.assets[0].uri;
 
         await addMessage({
           type: "image",
@@ -354,20 +454,34 @@ export default function ChatScreen({
         });
       }
     } catch (error) {
-      console.error("Image picker failed:", error);
+      console.error(
+        "Image picker failed:",
+        error
+      );
     } finally {
       setAttachmentOpen(false);
     }
   }
 
+  /*
+    ============================================================
+    START RECORDING
+    ============================================================
+  */
   async function startRecording() {
     try {
+      /*
+        Stop voice playback before recording.
+      */
+      stopVoicePlayback();
+
       await setAudioModeAsync({
         playsInSilentMode: true,
         allowsRecording: true,
       });
 
       await audioRecorder.prepareToRecordAsync();
+
       audioRecorder.record();
     } catch (error) {
       console.error(
@@ -377,14 +491,22 @@ export default function ChatScreen({
     }
   }
 
+  /*
+    ============================================================
+    STOP RECORDING
+    ============================================================
+  */
   async function stopRecording() {
     try {
       await audioRecorder.stop();
 
-      const voiceUri = audioRecorder.uri;
+      const voiceUri =
+        audioRecorder.uri;
 
       if (!voiceUri) {
-        console.log("No recording URI found");
+        console.log(
+          "No recording URI found"
+        );
         return;
       }
 
@@ -406,72 +528,489 @@ export default function ChatScreen({
     }
   }
 
+  /*
+    ============================================================
+    STOP CURRENT VOICE
+    ============================================================
+
+    This function is synchronous.
+
+    That is important.
+
+    We invalidate the current playback request FIRST,
+    then destroy the player.
+
+    So if another tap happens immediately, the old async
+    operation can no longer claim playback again.
+  */
+  function stopVoicePlayback() {
+    /*
+      Invalidate ALL previous playback requests.
+    */
+    playbackRequestRef.current += 1;
+
+    /*
+      No voice is allowed to play now.
+    */
+    activeVoiceRef.current = null;
+
+    /*
+      UI immediately changes.
+    */
+    setPlayingVoice(null);
+
+    /*
+      Remove status listener.
+    */
+    if (playerSubscriptionRef.current) {
+      try {
+        playerSubscriptionRef.current.remove();
+      } catch (error) {
+        console.log(
+          "Playback listener removal skipped:",
+          error
+        );
+      }
+
+      playerSubscriptionRef.current = null;
+    }
+
+    /*
+      Take ownership away from the ref BEFORE
+      touching the native player.
+    */
+    const player = playerRef.current;
+
+    playerRef.current = null;
+
+    if (!player) {
+      return;
+    }
+
+    try {
+      player.pause();
+    } catch (error) {
+      console.log(
+        "Audio pause skipped:",
+        error
+      );
+    }
+
+    try {
+      player.remove();
+    } catch (error) {
+      console.log(
+        "Audio remove skipped:",
+        error
+      );
+    }
+  }
+
+  /*
+    ============================================================
+    PLAY VOICE
+    ============================================================
+
+    GUARANTEES:
+
+    1. Only ONE voice can be active.
+    2. Double tap cannot create two players.
+    3. Switching voice immediately invalidates the old request.
+    4. Old async operations cannot install themselves again.
+    5. Player is removed when playback finishes.
+    */
   async function playVoice(uri) {
     if (!uri) return;
 
+    /*
+      ----------------------------------------------------------
+      STEP 1
+      ----------------------------------------------------------
+
+      Read the current voice BEFORE changing anything.
+      */
+    const currentUri =
+      activeVoiceRef.current;
+
+    /*
+      ----------------------------------------------------------
+      SAME VOICE
+      ----------------------------------------------------------
+
+      If the same voice is already active, this tap means STOP.
+
+      This happens immediately.
+
+      No await.
+      No second player.
+      No race.
+      */
+    if (currentUri === uri) {
+      stopVoicePlayback();
+      return;
+    }
+
+    /*
+      ----------------------------------------------------------
+      NEW PLAYBACK REQUEST
+      ----------------------------------------------------------
+
+      Create a unique request number.
+
+      Example:
+
+      First tap:
+        request = 1
+
+      Second tap:
+        request = 2
+
+      If request 1 finishes an await later,
+      it sees that 2 is now current and aborts.
+      */
+    const requestId =
+      playbackRequestRef.current + 1;
+
+    playbackRequestRef.current =
+      requestId;
+
+    /*
+      ----------------------------------------------------------
+      CLAIM THE VOICE IMMEDIATELY
+      ----------------------------------------------------------
+
+      This happens BEFORE the first await.
+
+      This is the important double-tap protection.
+      */
+    activeVoiceRef.current = uri;
+
+    /*
+      UI immediately shows this voice as playing.
+      */
+    setPlayingVoice(uri);
+
+    /*
+      ----------------------------------------------------------
+      DESTROY PREVIOUS PLAYER
+      ----------------------------------------------------------
+    */
+    if (playerSubscriptionRef.current) {
+      try {
+        playerSubscriptionRef.current.remove();
+      } catch (error) {
+        console.log(
+          "Old playback listener removal skipped:",
+          error
+        );
+      }
+
+      playerSubscriptionRef.current = null;
+    }
+
+    const oldPlayer =
+      playerRef.current;
+
+    playerRef.current = null;
+
+    if (oldPlayer) {
+      try {
+        oldPlayer.pause();
+      } catch (error) {
+        console.log(
+          "Previous audio pause skipped:",
+          error
+        );
+      }
+
+      try {
+        oldPlayer.remove();
+      } catch (error) {
+        console.log(
+          "Previous audio remove skipped:",
+          error
+        );
+      }
+    }
+
     try {
-      if (playbackTimerRef.current) {
-        clearTimeout(playbackTimerRef.current);
-      }
-
-      if (playerRef.current) {
-        try {
-          playerRef.current.remove();
-        } catch (error) {
-          console.log(
-            "Old audio player cleanup skipped:",
-            error
-          );
-        }
-
-        playerRef.current = null;
-      }
-
+      /*
+        --------------------------------------------------------
+        AUDIO MODE
+        --------------------------------------------------------
+      */
       await setAudioModeAsync({
         playsInSilentMode: true,
         allowsRecording: false,
       });
 
-      const player = createAudioPlayer(uri);
+      /*
+        --------------------------------------------------------
+        RACE CHECK #1
+        --------------------------------------------------------
 
+        Maybe the user tapped another voice while
+        setAudioModeAsync() was waiting.
+
+        If so, this request is DEAD.
+      */
+      if (
+        playbackRequestRef.current !==
+        requestId
+      ) {
+        return;
+      }
+
+      if (
+        activeVoiceRef.current !== uri
+      ) {
+        return;
+      }
+
+      /*
+        --------------------------------------------------------
+        CREATE EXACTLY ONE PLAYER
+        --------------------------------------------------------
+      */
+      const player =
+        createAudioPlayer(uri);
+
+      /*
+        --------------------------------------------------------
+        RACE CHECK #2
+        --------------------------------------------------------
+
+        The user could have tapped again during
+        createAudioPlayer().
+      */
+      if (
+        playbackRequestRef.current !==
+        requestId ||
+        activeVoiceRef.current !== uri
+      ) {
+        try {
+          player.remove();
+        } catch (error) {
+          console.log(
+            "Unused player removal skipped:",
+            error
+          );
+        }
+
+        return;
+      }
+
+      /*
+        --------------------------------------------------------
+        PLAYER IS NOW OWNED BY THIS REQUEST
+        --------------------------------------------------------
+      */
       playerRef.current = player;
-      setPlayingVoice(uri);
 
-      player.seekTo(0);
+      /*
+        --------------------------------------------------------
+        LISTEN FOR REAL PLAYBACK COMPLETION
+        --------------------------------------------------------
+
+        No fake 5-second timer.
+
+        Expo Audio tells us when the actual audio finishes.
+      */
+      playerSubscriptionRef.current =
+        player.addListener(
+          "playbackStatusUpdate",
+          (status) => {
+            /*
+              Ignore events from an old request.
+            */
+            if (
+              playbackRequestRef.current !==
+              requestId
+            ) {
+              return;
+            }
+
+            if (
+              activeVoiceRef.current !== uri
+            ) {
+              return;
+            }
+
+            /*
+              Audio actually finished.
+            */
+            if (status.didJustFinish) {
+              activeVoiceRef.current = null;
+
+              if (
+                playerRef.current ===
+                player
+              ) {
+                playerRef.current = null;
+              }
+
+              setPlayingVoice(null);
+
+              if (
+                playerSubscriptionRef.current
+              ) {
+                try {
+                  playerSubscriptionRef.current.remove();
+                } catch (error) {
+                  console.log(
+                    "Playback completion listener cleanup skipped:",
+                    error
+                  );
+                }
+
+                playerSubscriptionRef.current =
+                  null;
+              }
+
+              try {
+                player.remove();
+              } catch (error) {
+                console.log(
+                  "Playback completion player cleanup skipped:",
+                  error
+                );
+              }
+            }
+          }
+        );
+
+      /*
+        --------------------------------------------------------
+        START FROM BEGINNING
+        --------------------------------------------------------
+      */
+      await player.seekTo(0);
+
+      /*
+        --------------------------------------------------------
+        RACE CHECK #3
+        --------------------------------------------------------
+      */
+      if (
+        playbackRequestRef.current !==
+        requestId ||
+        activeVoiceRef.current !== uri ||
+        playerRef.current !== player
+      ) {
+        try {
+          player.remove();
+        } catch (error) {
+          console.log(
+            "Cancelled player cleanup skipped:",
+            error
+          );
+        }
+
+        return;
+      }
+
+      /*
+        --------------------------------------------------------
+        PLAY
+        --------------------------------------------------------
+      */
       player.play();
-
-      playbackTimerRef.current = setTimeout(() => {
-        setPlayingVoice(null);
-      }, 5000);
     } catch (error) {
       console.error(
         "Voice playback failed:",
         error
       );
 
-      setPlayingVoice(null);
+      /*
+        Only clean the UI if this is still
+        the active playback request.
+      */
+      if (
+        playbackRequestRef.current ===
+          requestId &&
+        activeVoiceRef.current === uri
+      ) {
+        activeVoiceRef.current = null;
+
+        setPlayingVoice(null);
+
+        if (
+          playerSubscriptionRef.current
+        ) {
+          try {
+            playerSubscriptionRef.current.remove();
+          } catch (cleanupError) {
+            console.log(
+              "Playback listener cleanup failed:",
+              cleanupError
+            );
+          }
+
+          playerSubscriptionRef.current =
+            null;
+        }
+
+        const failedPlayer =
+          playerRef.current;
+
+        playerRef.current = null;
+
+        if (failedPlayer) {
+          try {
+            failedPlayer.remove();
+          } catch (cleanupError) {
+            console.log(
+              "Failed player cleanup failed:",
+              cleanupError
+            );
+          }
+        }
+      }
     }
   }
 
+  /*
+    ============================================================
+    MESSAGE VALUE
+    ============================================================
+  */
   function getMessageValue(item) {
     return String(
-      item.content || item.text || ""
+      item.content ||
+        item.text ||
+        ""
     );
   }
 
+  /*
+    ============================================================
+    MESSAGE CONTENT
+    ============================================================
+  */
   function renderMessageContent(item) {
-    const value = getMessageValue(item);
-    const imageUri = value.replace("IMAGE::", "");
+    const value =
+      getMessageValue(item);
+
+    const imageUri =
+      value.replace(
+        "IMAGE::",
+        ""
+      );
 
     const isImage =
       item.type === "image" ||
       value.startsWith("IMAGE::");
 
+    /*
+      IMAGE
+    */
     if (isImage) {
       return (
         <TouchableOpacity
           activeOpacity={0.88}
-          onPress={() => setPreviewImage(imageUri)}
+          onPress={() =>
+            setPreviewImage(imageUri)
+          }
         >
           <Image
             source={{ uri: imageUri }}
@@ -482,6 +1021,9 @@ export default function ChatScreen({
       );
     }
 
+    /*
+      VOICE
+    */
     if (item.type === "voice") {
       const isPlaying =
         playingVoice === item.content;
@@ -494,31 +1036,49 @@ export default function ChatScreen({
             playVoice(item.content)
           }
         >
-          <View style={styles.voicePlayButton}>
+          <View
+            style={styles.voicePlayButton}
+          >
             <Feather
               name={
-                isPlaying ? "pause" : "play"
+                isPlaying
+                  ? "pause"
+                  : "play"
               }
               size={18}
               color="white"
             />
           </View>
 
-          <View style={styles.waveform}>
+          <View
+            style={styles.waveform}
+          >
             {[
-              12, 19, 27, 15, 30, 21,
-              13, 25, 17, 29, 15, 23,
-            ].map((height, index) => (
-              <View
-                key={`${item.id}-wave-${index}`}
-                style={[
-                  styles.waveBar,
-                  { height },
-                  item.mine &&
-                    styles.waveBarMine,
-                ]}
-              />
-            ))}
+              12,
+              19,
+              27,
+              15,
+              30,
+              21,
+              13,
+              25,
+              17,
+              29,
+              15,
+              23,
+            ].map(
+              (height, index) => (
+                <View
+                  key={`${item.id}-wave-${index}`}
+                  style={[
+                    styles.waveBar,
+                    { height },
+                    item.mine &&
+                      styles.waveBarMine,
+                  ]}
+                />
+              )
+            )}
           </View>
 
           <Text
@@ -534,6 +1094,9 @@ export default function ChatScreen({
       );
     }
 
+    /*
+      TEXT
+    */
     return (
       <Text
         style={
@@ -542,40 +1105,56 @@ export default function ChatScreen({
             : styles.msgText
         }
       >
-        {item.content || item.text}
+        {item.content ||
+          item.text}
       </Text>
     );
   }
 
-  const renderMessage = useCallback(
-    ({ item }) => (
-      <View
-        style={
-          item.mine
-            ? styles.myBubble
-            : styles.otherBubble
-        }
-      >
-        {renderMessageContent(item)}
-
-        <Text
+  /*
+    ============================================================
+    MESSAGE RENDER
+    ============================================================
+  */
+  const renderMessage =
+    useCallback(
+      ({ item }) => (
+        <View
           style={
             item.mine
-              ? styles.myTime
-              : styles.msgTime
+              ? styles.myBubble
+              : styles.otherBubble
           }
         >
-          {item.mine
-            ? `${item.time}  ✓✓`
-            : item.time}
-        </Text>
-      </View>
-    ),
-    [playingVoice]
-  );
+          {renderMessageContent(
+            item
+          )}
 
+          <Text
+            style={
+              item.mine
+                ? styles.myTime
+                : styles.msgTime
+            }
+          >
+            {item.mine
+              ? `${item.time}  ✓✓`
+              : item.time}
+          </Text>
+        </View>
+      ),
+      [playingVoice]
+    );
+
+  /*
+    ============================================================
+    LIST LAYOUT
+    ============================================================
+  */
   function handleListLayout() {
-    if (!firstLayoutRef.current) return;
+    if (!firstLayoutRef.current) {
+      return;
+    }
 
     firstLayoutRef.current = false;
 
@@ -586,8 +1165,14 @@ export default function ChatScreen({
     });
   }
 
-  const title = contactName || nodeId;
+  const title =
+    contactName || nodeId;
 
+  /*
+    ============================================================
+    UI
+    ============================================================
+  */
   return (
     <KeyboardAvoidingView
       style={styles.page}
@@ -601,7 +1186,14 @@ export default function ChatScreen({
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={goBack}
+          onPress={() => {
+            /*
+              Stop audio before leaving chat.
+            */
+            stopVoicePlayback();
+
+            goBack?.();
+          }}
         >
           <Ionicons
             name="chevron-back"
@@ -611,12 +1203,18 @@ export default function ChatScreen({
         </TouchableOpacity>
 
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {title.charAt(0).toUpperCase()}
+          <Text
+            style={styles.avatarText}
+          >
+            {title
+              .charAt(0)
+              .toUpperCase()}
           </Text>
         </View>
 
-        <View style={styles.headerText}>
+        <View
+          style={styles.headerText}
+        >
           <Text
             style={styles.name}
             numberOfLines={1}
@@ -625,12 +1223,16 @@ export default function ChatScreen({
           </Text>
 
           {contactName ? (
-            <Text style={styles.nodeId}>
+            <Text
+              style={styles.nodeId}
+            >
               {nodeId}
             </Text>
           ) : null}
 
-          <Text style={styles.online}>
+          <Text
+            style={styles.online}
+          >
             ● Online
           </Text>
         </View>
@@ -712,7 +1314,9 @@ export default function ChatScreen({
             Today
           </Text>
         }
-        onLayout={handleListLayout}
+        onLayout={
+          handleListLayout
+        }
       />
 
       <View style={styles.inputBar}>
@@ -729,14 +1333,22 @@ export default function ChatScreen({
           />
         </TouchableOpacity>
 
-        <View style={styles.inputWrap}>
+        <View
+          style={styles.inputWrap}
+        >
           <TextInput
             placeholder="Message..."
-            placeholderTextColor={C.muted}
+            placeholderTextColor={
+              C.muted
+            }
             style={styles.input}
             value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={sendMessage}
+            onChangeText={
+              setMessage
+            }
+            onSubmitEditing={
+              sendMessage
+            }
             returnKeyType="send"
           />
         </View>
@@ -783,14 +1395,20 @@ export default function ChatScreen({
             setAttachmentOpen(false)
           }
         >
-          <Pressable style={styles.sheet}>
-            <View style={styles.handle} />
+          <Pressable
+            style={styles.sheet}
+          >
+            <View
+              style={styles.handle}
+            />
 
             <TouchableOpacity
               style={styles.menu}
               onPress={pickImage}
             >
-              <View style={styles.menuIcon}>
+              <View
+                style={styles.menuIcon}
+              >
                 <Feather
                   name="image"
                   size={18}
@@ -798,7 +1416,9 @@ export default function ChatScreen({
                 />
               </View>
 
-              <Text style={styles.menuText}>
+              <Text
+                style={styles.menuText}
+              >
                 Upload Picture
               </Text>
             </TouchableOpacity>
@@ -807,7 +1427,9 @@ export default function ChatScreen({
       )}
 
       <Modal
-        visible={Boolean(previewImage)}
+        visible={Boolean(
+          previewImage
+        )}
         transparent
         animationType="fade"
         statusBarTranslucent
@@ -815,14 +1437,22 @@ export default function ChatScreen({
           setPreviewImage(null)
         }
       >
-        <View style={styles.preview}>
+        <View
+          style={styles.preview}
+        >
           <Image
-            source={{ uri: previewImage }}
-            style={styles.previewImage}
+            source={{
+              uri: previewImage,
+            }}
+            style={
+              styles.previewImage
+            }
           />
 
           <Pressable
-            style={styles.previewClose}
+            style={
+              styles.previewClose
+            }
             onPress={() =>
               setPreviewImage(null)
             }
@@ -838,6 +1468,12 @@ export default function ChatScreen({
     </KeyboardAvoidingView>
   );
 }
+
+/*
+  ==============================================================
+  STYLES
+  ==============================================================
+*/
 
 const styles = StyleSheet.create({
   page: {
@@ -1123,7 +1759,8 @@ const styles = StyleSheet.create({
   overlay: {
     position: "absolute",
     inset: 0,
-    backgroundColor: "rgba(0,0,0,0.62)",
+    backgroundColor:
+      "rgba(0,0,0,0.62)",
     justifyContent: "flex-end",
   },
 
@@ -1173,7 +1810,8 @@ const styles = StyleSheet.create({
 
   preview: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.98)",
+    backgroundColor:
+      "rgba(0,0,0,0.98)",
     justifyContent: "center",
     alignItems: "center",
   },
