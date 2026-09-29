@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simon Sunday — Cybersecurity · Software Development · Networking · Infrastructure</title>
+<meta name="description" content="Simon Sunday — aspiring Cybersecurity Specialist and software developer. Builder of ShadowBox. Practical experience in offensive security, networking, Linux/FreeBSD administration, and application development.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="grain-overlay" aria-hidden="true"></div>
+
+<script>
+  // Defined early, inline, so it exists before any <img onerror> below can fire
+  // (images can error before js/main.js at the bottom has finished loading).
+  function markShotMissing(imgEl, filename) {
+    imgEl.style.display = 'none';
+    var figure = imgEl.closest('figure');
+    if (!figure || figure.classList.contains('shot-missing')) return;
+    figure.classList.add('shot-missing');
+    var label = document.createElement('div');
+    label.className = 'shot-placeholder-label';
+    label.innerHTML = '<span>SCREENSHOT</span><span class="shot-placeholder-hint">assets/' + filename + '</span>';
+    figure.insertBefore(label, figure.firstChild);
+  }
+</script>
+
+<!-- ================= NAV ================= -->
+<header class="site-nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="#profile" class="nav-mark">SS<span class="nav-mark-dot">.</span></a>
+    <nav class="nav-links" id="nav-links">
+      <a href="#profile"><span class="nav-index">01</span> Profile</a>
+      <a href="#shadowbox"><span class="nav-index">02</span> ShadowBox</a>
+      <a href="#cybersecurity"><span class="nav-index">03</span> Cybersecurity</a>
+      <a href="#skills"><span class="nav-index">04</span> Skills</a>
+      <a href="#experience"><span class="nav-index">05</span> Experience</a>
+      <a href="#education"><span class="nav-index">06</span> Education</a>
+      <a href="#contact"><span class="nav-index">07</span> Contact</a>
+    </nav>
+    <a href="#contact" class="nav-cta">Get in touch</a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= 01 — PROFESSIONAL PROFILE ================= -->
+<section class="section profile-section" id="profile">
+  <canvas class="node-canvas" id="node-canvas-profile" aria-hidden="true"></canvas>
+  <div class="section-inner profile-grid">
+
+    <div class="profile-text reveal">
+      <p class="section-kicker">01 — Professional Profile</p>
+      <h1 class="profile-name">SIMON<br>SUNDAY</h1>
+
+      <ul class="focus-list" aria-label="Areas of focus">
+        <li>Cybersecurity</li>
+        <li>Software Development</li>
+        <li>Networking</li>
+        <li>Infrastructure</li>
+      </ul>
+
+      <p class="profile-summary">
+        I'm an aspiring Cybersecurity Specialist with practical, hands-on experience across
+        offensive security, network reconnaissance, and vulnerability assessment, built through
+        authorized laboratory work and independent projects. Alongside security, I administer
+        Linux and FreeBSD systems, deploy and manage VPS infrastructure, run command-and-control
+        frameworks in controlled environments, and automate tasks with Python. I also design and
+        build real-time applications — most notably <a href="#shadowbox">ShadowBox</a>, a
+        privacy-focused local-first communication platform I founded and continue to develop.
+        Outside of technical work, I bring several years of front-line customer service, cash
+        handling, and remote support experience, and I carry that same discipline —
+        accuracy, accountability, and calm under pressure — into every technical environment I
+        work in.
+      </p>
+
+      <div class="availability-block">
+        <p class="availability-heading">Availability</p>
+        <div class="availability-tags">
+          <span class="tag tag-available">Available — Remote</span>
+          <span class="tag tag-available">Available — On-site</span>
+          <span class="tag tag-available">Willing to Relocate</span>
+        </div>
+        <p class="availability-heading" style="margin-top: 1.75rem;">Current Direction</p>
+        <div class="availability-tags">
+          <span class="tag">Cybersecurity</span>
+          <span class="tag">SOC Analysis</span>
+          <span class="tag">Technical Support</span>
+          <span class="tag">Networking</span>
+          <span class="tag">Software Development</span>
+        </div>
+      </div>
+
+      <div class="contact-row">
+        <a href="mailto:elijahelishagt@gmail.com" class="contact-link">
+          <span class="contact-label">Email</span>
+          <span class="contact-value">elijahelishagt@gmail.com</span>
+        </a>
+        <a href="tel:+2349133316047" class="contact-link">
+          <span class="contact-label">Phone</span>
+          <span class="contact-value">0913 331 6047</span>
+        </a>
+        <a href="https://github.com/Elishadonk" target="_blank" rel="noopener" class="contact-link">
+          <span class="contact-label">GitHub</span>
+          <span class="contact-value">github.com/Elishadonk</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="profile-photo-wrap reveal">
+      <div class="photo-frame" id="photo-frame">
+        <img src="assets/profile.png" alt="Simon Sunday" id="profile-img"
+             onerror="this.style.display='none'; document.getElementById('photo-frame').classList.add('photo-missing');">
+        <div class="photo-placeholder-label">
+          <span class="photo-placeholder-word">PHOTO</span>
+          <span class="photo-placeholder-hint">assets/profile.png</span>
+        </div>
+        <div class="photo-frame-corner tl"></div>
+        <div class="photo-frame-corner br"></div>
+      </div>
+      <p class="photo-caption">Simon Sunday — Lagos, Nigeria</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= 02 — SHADOWBOX ================= -->
+<section class="section shadowbox-section" id="shadowbox">
+  <div class="section-inner">
+
+    <div class="project-header reveal">
+      <p class="section-kicker">02 — Flagship Project</p>
+      <div class="project-title-row">
+        <h2 class="project-title">SHADOWBOX</h2>
+        <div class="project-meta">
+          <div class="meta-item"><span class="meta-label">Role</span><span class="meta-value">Founder &amp; Developer</span></div>
+          <div class="meta-item"><span class="meta-label">Timeline</span><span class="meta-value">2025 — Present</span></div>
+          <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value">Active Development</span></div>
+        </div>
+      </div>
+      <p class="project-lede">
+        ShadowBox is a privacy-focused communication platform built around reliable, real-time
+        messaging and calling over local network infrastructure. The project is local-first by
+        design: rather than depending entirely on centralized internet infrastructure, ShadowBox
+        is engineered so devices on the same local network can communicate directly and
+        reliably. It is not a replacement for the internet — it's a deliberately-scoped, local
+        communication system, built and tested end-to-end by one developer.
+      </p>
+    </div>
+
+    <!-- Screenshot gallery -->
+    <div class="shot-gallery reveal">
+      <figure class="shot shot-feature">
+        <img src="assets/68208.jpg" alt="ShadowBox application screenshot"
+             onerror="markShotMissing(this, '68208.jpg')">
+        <figcaption>ShadowBox — primary interface</figcaption>
+      </figure>
+      <div class="shot-grid">
+        <figure class="shot">
+          <img src="assets/68209.jpg" alt="ShadowBox application screenshot" onerror="markShotMissing(this, '68209.jpg')">
+          <figcaption>Messaging</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/68210.jpg" alt="ShadowBox application screenshot" onerror="markShotMissing(this, '68210.jpg')">
+          <figcaption>Contacts</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/68211.jpg" alt="ShadowBox application screenshot" onerror="markShotMissing(this, '68211.jpg')">
+          <figcaption>Voice &amp; video calling</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/68212.jpg" alt="ShadowBox application screenshot" onerror="markShotMissing(this, '68212.jpg')">
+          <figcaption>Media messages</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/68213.jpg" alt="ShadowBox application screenshot" onerror="markShotMissing(this, '68213.jpg')">
+          <figcaption>Identity &amp; profile</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/68214.jpg" alt="ShadowBox application screenshot" onerror="markShotMissing(this, '68214.jpg')">
+          <figcaption>System view</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Architecture -->
+    <div class="architecture-block reveal">
+      <h3 class="subheading">System Architecture</h3>
+      <p class="body-text">
+        ShadowBox is built as a layered system — from the application UI down through real-time
+        communication services to the network transport that carries every message, call, and
+        file between devices.
+      </p>
+      <div class="arch-diagram" role="img" aria-label="Architecture: Application, Android / React Native, Node.js / JavaScript, LiveKit real-time communication, SQLite local storage, TCP/IP and UDP, Wi-Fi and LAN, Connected Devices">
+        <div class="arch-node">Application</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node">Android / React Native</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node">Node.js / JavaScript</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node">LiveKit — Real-Time Communication</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node">SQLite — Local Storage</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node">TCP/IP · UDP</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node">Wi-Fi · LAN</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-node arch-node-end">Connected Devices</div>
+      </div>
+    </div>
+
+    <!-- What I Built / Engineering -->
+    <div class="two-col reveal">
+      <div>
+        <h3 class="subheading">What I Built</h3>
+        <ul class="check-list">
+          <li>Real-time text messaging</li>
+          <li>Image messages and voice notes</li>
+          <li>Voice and video calling</li>
+          <li>Permanent user identity and contact management</li>
+          <li>Local SQLite storage for messages and app data</li>
+          <li>Android services and native components, where required by the platform</li>
+          <li>Local network communication between devices on the same network</li>
+          <li>Physical-device testing across real hardware</li>
+          <li>Connectivity troubleshooting and debugging</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="subheading">Engineering &amp; Tooling</h3>
+        <p class="body-text">
+          The backend is built on Node.js and JavaScript, with LiveKit handling real-time voice
+          and video transport. The client stores messages and identity data locally in SQLite,
+          so the app remains usable and consistent without depending on a remote database for
+          every read. Development runs across Linux environments, with Git and GitHub for version
+          control throughout.
+        </p>
+        <p class="body-text">
+          On the networking side, getting real-time communication working reliably over local
+          infrastructure meant working directly with TCP/IP and UDP, testing behavior over Wi-Fi
+          and LAN, and verifying connectivity between peer devices by hand. I used Wireshark to
+          inspect traffic during development and ADB to test and debug the Android client
+          directly on physical devices.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= 03 — CYBERSECURITY ================= -->
+<section class="section cyber-section" id="cybersecurity">
+  <canvas class="node-canvas" id="node-canvas-cyber" aria-hidden="true"></canvas>
+  <div class="section-inner">
+
+    <p class="section-kicker reveal">03 — Cybersecurity</p>
+    <h2 class="section-heading reveal">Practical Security Work</h2>
+    <p class="body-text lede reveal">
+      My cybersecurity experience comes from authorized laboratory environments, controlled
+      infrastructure I've set up myself, and independent study — not from professional red-team
+      employment. I'm building this foundation deliberately, through repeatable, hands-on
+      practice with the tools and methodologies used in real security work: reconnaissance,
+      vulnerability assessment, penetration testing methodology, and command-and-control
+      frameworks in environments built specifically for safe experimentation.
+    </p>
+
+    <div class="cyber-skill-row reveal">
+      <span class="tag tag-cyber">Penetration Testing</span>
+      <span class="tag tag-cyber">Vulnerability Assessment</span>
+      <span class="tag tag-cyber">Network Reconnaissance</span>
+      <span class="tag tag-cyber">Ethical Hacking Methodologies</span>
+      <span class="tag tag-cyber">Nmap</span>
+      <span class="tag tag-cyber">Wireshark</span>
+      <span class="tag tag-cyber">TShark</span>
+      <span class="tag tag-cyber">Burp Suite</span>
+      <span class="tag tag-cyber">OpenVPN</span>
+      <span class="tag tag-cyber">Havoc C2</span>
+      <span class="tag tag-cyber">Sliver C2</span>
+      <span class="tag tag-cyber">Metasploit Framework</span>
+      <span class="tag tag-cyber">Armitage</span>
+    </div>
+
+    <!-- C2 / VPS Lab case study -->
+    <div class="lab-block reveal">
+      <div class="lab-header">
+        <h3 class="subheading">C2 / VPS Security Laboratory</h3>
+        <span class="lab-badge">Authorized Laboratory</span>
+      </div>
+      <p class="body-text">
+        I built and maintain my own lab environment for practicing command-and-control
+        infrastructure and server administration, entirely within systems I own or environments
+        explicitly designed for this kind of practice.
+      </p>
+      <ul class="check-list">
+        <li>Installed and configured Havoc C2 in controlled lab environments</li>
+        <li>Installed and managed Sliver C2</li>
+        <li>Practiced Metasploit Framework and Armitage in authorized labs</li>
+        <li>Configured and administered VPS instances and Linux servers</li>
+        <li>Managed SSH access, running services, open ports, and dependencies</li>
+        <li>Managed server processes and resolved port conflicts between active services</li>
+        <li>Used Cloudflare Tunnel and Ngrok for lab connectivity and remote access</li>
+        <li>Studied C2 traffic patterns to build a defensive, monitoring-oriented understanding of how this infrastructure behaves on a network</li>
+      </ul>
+    </div>
+
+    <!-- Hack The Box case study -->
+    <div class="lab-block reveal">
+      <div class="lab-header">
+        <h3 class="subheading">Hack The Box</h3>
+        <span class="lab-badge">Authorized Laboratory</span>
+      </div>
+      <p class="body-text">
+        I use Hack The Box's authorized environments to practice enumeration, exploitation
+        methodology, and reporting in a structured, legal setting built specifically for this
+        purpose.
+      </p>
+      <ul class="check-list">
+        <li>Connecting to authorized Hack The Box environments over OpenVPN</li>
+        <li>Port scanning and service enumeration with Nmap</li>
+        <li>Traffic inspection and analysis with Wireshark and TShark</li>
+        <li>Vulnerability assessment against lab targets</li>
+        <li>Working fluently from the Linux command line throughout</li>
+        <li>Applying ethical exploitation methodologies within the platform's rules of engagement</li>
+        <li>Writing up findings after each assessment</li>
+      </ul>
+    </div>
+
+    <!-- Linux/FreeBSD + Python -->
+    <div class="two-col reveal">
+      <div class="lab-block-plain">
+        <h3 class="subheading">Systems: Linux &amp; FreeBSD</h3>
+        <p class="body-text">
+          Most of my technical work happens on Linux — Kali Linux for security tooling, and
+          general-purpose distributions for development and server administration — alongside
+          FreeBSD administration. This includes deploying and configuring VPS instances, managing
+          SSH access, packages, services, and users, working with storage and network settings,
+          and troubleshooting DNS issues. I run XFCE and SDDM in my working environment, and I
+          use this same Linux foundation to install, configure, and maintain the development and
+          cybersecurity tools I rely on, including basic system optimization.
+        </p>
+      </div>
+      <div class="lab-block-plain">
+        <h3 class="subheading">Automation: Python</h3>
+        <p class="body-text">
+          I use Python to automate repetitive tasks and build small command-line utilities,
+          working with conditional logic, loops, functions, and core data structures. I set up
+          isolated virtual environments for each project to keep dependencies clean. This is
+          practical, task-focused scripting rather than large-scale software engineering — a
+          tool I reach for to solve real problems in my own workflow, in security labs, and in
+          ShadowBox development.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= 04 — TECHNICAL SKILLS ================= -->
+<section class="section skills-section" id="skills">
+  <div class="section-inner">
+    <p class="section-kicker reveal">04 — Technical Skills</p>
+    <h2 class="section-heading reveal">What I Know</h2>
+
+    <div class="skills-grid">
+
+      <div class="skill-category reveal">
+        <h3 class="skill-cat-title">Cybersecurity</h3>
+        <div class="skill-tags">
+          <span class="tag tag-cyber">Penetration Testing</span>
+          <span class="tag tag-cyber">Vulnerability Assessment</span>
+          <span class="tag tag-cyber">Network Reconnaissance</span>
+          <span class="tag tag-cyber">Ethical Hacking Methodologies</span>
+          <span class="tag tag-cyber">Command-and-Control Frameworks</span>
+          <span class="tag tag-cyber">Havoc C2</span>
+          <span class="tag tag-cyber">Sliver C2</span>
+          <span class="tag tag-cyber">Metasploit Framework</span>
+          <span class="tag tag-cyber">Armitage</span>
+          <span class="tag tag-cyber">Nmap</span>
+          <span class="tag tag-cyber">Wireshark</span>
+          <span class="tag tag-cyber">TShark</span>
+          <span class="tag tag-cyber">Burp Suite</span>
+          <span class="tag tag-cyber">Hack The Box</span>
+        </div>
+      </div>
+
+      <div class="skill-category reveal">
+        <h3 class="skill-cat-title">Networking</h3>
+        <div class="skill-tags">
+          <span class="tag">TCP/IP</span>
+          <span class="tag">UDP</span>
+          <span class="tag">OpenVPN</span>
+          <span class="tag">Wi-Fi</span>
+          <span class="tag">LAN</span>
+          <span class="tag">Network Traffic Analysis</span>
+          <span class="tag">Firewall Configuration</span>
+          <span class="tag">Port Configuration</span>
+          <span class="tag">Network Services</span>
+        </div>
+      </div>
+
+      <div class="skill-category reveal">
+        <h3 class="skill-cat-title">Systems</h3>
+        <div class="skill-tags">
+          <span class="tag">Linux</span>
+          <span class="tag">Kali Linux</span>
+          <span class="tag">FreeBSD</span>
+          <span class="tag">VPS Administration</span>
+          <span class="tag">Linux Server Configuration</span>
+          <span class="tag">SSH</span>
+          <span class="tag">XFCE</span>
+          <span class="tag">SDDM</span>
+          <span class="tag">DNS Troubleshooting</span>
+        </div>
+      </div>
+
+      <div class="skill-category reveal">
+        <h3 class="skill-cat-title">Development</h3>
+        <div class="skill-tags">
+          <span class="tag">React Native</span>
+          <span class="tag">JavaScript</span>
+          <span class="tag">Node.js</span>
+          <span class="tag">Python</span>
+          <span class="tag">SQLite</span>
+          <span class="tag">LiveKit</span>
+          <span class="tag">Git</span>
+          <span class="tag">GitHub</span>
+          <span class="tag">Linux Command Line</span>
+        </div>
+      </div>
+
+      <div class="skill-category reveal">
+        <h3 class="skill-cat-title">Infrastructure</h3>
+        <div class="skill-tags">
+          <span class="tag">Local Communication Systems</span>
+          <span class="tag">Backend Services</span>
+          <span class="tag">Real-Time Communication</span>
+          <span class="tag">Local Network Services</span>
+          <span class="tag">Local LLM Infrastructure Management (llama.cpp)</span>
+        </div>
+      </div>
+
+      <div class="skill-category reveal">
+        <h3 class="skill-cat-title">Professional</h3>
+        <div class="skill-tags">
+          <span class="tag">Customer Support</span>
+          <span class="tag">Remote Customer Support</span>
+          <span class="tag">Data Entry</span>
+          <span class="tag">Cash Handling</span>
+          <span class="tag">POS Operations</span>
+          <span class="tag">Customer Relationship Management</span>
+          <span class="tag">Problem Solving</span>
+          <span class="tag">Time Management</span>
+          <span class="tag">Communication</span>
+          <span class="tag">Team Collaboration</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 — PROFESSIONAL EXPERIENCE ================= -->
+<section class="section experience-section" id="experience">
+  <div class="section-inner">
+    <p class="section-kicker reveal">05 — Professional Experience</p>
+    <h2 class="section-heading reveal">Where I've Worked</h2>
+
+    <div class="timeline">
+
+      <article class="timeline-item reveal">
+        <div class="timeline-marker"><span class="timeline-dates">2024 — 2026</span></div>
+        <div class="timeline-content">
+          <h3 class="role-title">Cashier</h3>
+          <p class="role-org">Salt &amp; Social Restaurant — Admiralty Way, Lekki, Lagos</p>
+          <ul class="body-list">
+            <li>Managed daily POS transactions across a high-volume restaurant floor</li>
+            <li>Processed cash, card, and electronic payments accurately</li>
+            <li>Delivered professional, consistent customer service</li>
+            <li>Balanced sales reports and completed cash reconciliation at the end of shifts</li>
+            <li>Worked closely with kitchen and service teams to keep operations running smoothly</li>
+            <li>Maintained accurate and secure transactional records</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="timeline-item reveal">
+        <div class="timeline-marker"><span class="timeline-dates">2024</span></div>
+        <div class="timeline-content">
+          <h3 class="role-title">Cashier</h3>
+          <p class="role-org">SPAR Supermarket — Victoria Island, Lagos</p>
+          <ul class="body-list">
+            <li>Operated POS systems for a high-traffic retail environment</li>
+            <li>Processed cash, card, and electronic payments</li>
+            <li>Maintained accurate cash balances and completed daily sales reconciliation</li>
+            <li>Assisted customers with purchases and returns</li>
+            <li>Answered product inquiries and restocked merchandise</li>
+            <li>Maintained an organized, efficient checkout area</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="timeline-item reveal">
+        <div class="timeline-marker"><span class="timeline-dates">2022 — 2024</span></div>
+        <div class="timeline-content">
+          <h3 class="role-title">Cashier</h3>
+          <p class="role-org">Gusto Restaurant — Victoria Island, Lagos</p>
+          <ul class="body-list">
+            <li>Processed customer payments and maintained accurate financial records</li>
+            <li>Balanced cash drawers at the end of every shift</li>
+            <li>Assisted customers with orders and payment inquiries</li>
+            <li>Followed strict cash-handling and security procedures</li>
+            <li>Supported daily restaurant operations alongside the service team</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="timeline-item reveal">
+        <div class="timeline-marker"><span class="timeline-dates">Dates not specified</span></div>
+        <div class="timeline-content">
+          <h3 class="role-title">Waiter</h3>
+          <p class="role-org">TIron Restaurant — Ikeja, Lagos</p>
+          <ul class="body-list">
+            <li>Welcomed customers and provided professional table service</li>
+            <li>Took food and beverage orders accurately</li>
+            <li>Coordinated closely with kitchen staff to ensure timely service</li>
+            <li>Maintained dining-area presentation throughout service</li>
+            <li>Resolved customer concerns professionally and calmly</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="timeline-item reveal">
+        <div class="timeline-marker"><span class="timeline-dates">Freelance</span></div>
+        <div class="timeline-content">
+          <h3 class="role-title">Remote Customer Support</h3>
+          <p class="role-org">Freelance</p>
+          <ul class="body-list">
+            <li>Responded to customer inquiries by chat and email</li>
+            <li>Assisted customers with product and service questions</li>
+            <li>Resolved basic customer issues independently</li>
+            <li>Documented support requests for tracking and follow-up</li>
+            <li>Maintained professional communication while working fully remotely</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="timeline-item reveal">
+        <div class="timeline-marker"><span class="timeline-dates">Freelance</span></div>
+        <div class="timeline-content">
+          <h3 class="role-title">Data Entry Assistant</h3>
+          <p class="role-org">Freelance</p>
+          <ul class="body-list">
+            <li>Entered and verified digital records, organized spreadsheet and database information, reviewed records for errors and maintained confidentiality while completing tasks within deadlines.</li>
+          </ul>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 — EDUCATION & PROFESSIONAL DEVELOPMENT ================= -->
+<section class="section education-section" id="education">
+  <div class="section-inner">
+    <p class="section-kicker reveal">06 — Education &amp; Professional Development</p>
+    <h2 class="section-heading reveal">Foundation &amp; Ongoing Study</h2>
+
+    <div class="two-col">
+
+      <div class="edu-block reveal">
+        <h3 class="subheading">Education</h3>
+        <div class="edu-item">
+          <p class="edu-degree">National Diploma — Science Laboratory Technology</p>
+          <p class="edu-school">Adamawa State Polytechnic</p>
+          <p class="edu-date">Graduated 2022</p>
+        </div>
+      </div>
+
+      <div class="edu-block reveal">
+        <h3 class="subheading">Certification</h3>
+        <div class="edu-item">
+          <div class="cert-header">
+            <p class="edu-degree">ISC2 Certified in Cybersecurity</p>
+            <span class="lab-badge lab-badge-progress">In Preparation</span>
+          </div>
+          <p class="body-text" style="margin-top: 0.75rem;">Currently studying:</p>
+          <ul class="check-list">
+            <li>Security Principles</li>
+            <li>Network Security</li>
+            <li>Access Control</li>
+            <li>Risk Management</li>
+            <li>Business Continuity</li>
+            <li>Incident Response</li>
+            <li>Security Operations</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07 — CONTACT ================= -->
+<section class="section contact-section" id="contact">
+  <canvas class="node-canvas" id="node-canvas-contact" aria-hidden="true"></canvas>
+  <div class="section-inner">
+    <p class="section-kicker reveal">07 — Contact</p>
+    <h2 class="section-heading reveal">Let's Talk</h2>
+    <p class="body-text lede reveal">
+      I'm actively looking for opportunities in cybersecurity, SOC analysis, technical support,
+      networking, and software development — remote or on-site, and I'm willing to relocate.
+      If you have a role, a project, or just want to talk shop, reach out directly.
+    </p>
+
+    <div class="contact-grid reveal">
+      <a href="mailto:elijahelishagt@gmail.com" class="contact-card">
+        <span class="contact-card-label">Email</span>
+        <span class="contact-card-value">elijahelishagt@gmail.com</span>
+      </a>
+      <a href="tel:+2349133316047" class="contact-card">
+        <span class="contact-card-label">Phone</span>
+        <span class="contact-card-value">0913 331 6047</span>
+      </a>
+      <a href="https://github.com/Elishadonk" target="_blank" rel="noopener" class="contact-card">
+        <span class="contact-card-label">GitHub</span>
+        <span class="contact-card-value">github.com/Elishadonk</span>
+      </a>
+    </div>
+
+    <div class="availability-block reveal" style="margin-top: 3.5rem;">
+      <div class="availability-tags">
+        <span class="tag tag-available">Available — Remote</span>
+        <span class="tag tag-available">Available — On-site</span>
+        <span class="tag tag-available">Willing to Relocate</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="section-inner footer-inner">
+    <p>Simon Sunday — <span id="footer-year"></span></p>
+    <p class="footer-links">
+      <a href="mailto:elijahelishagt@gmail.com">elijahelishagt@gmail.com</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://github.com/Elishadonk" target="_blank" rel="noopener">github.com/Elishadonk</a>
+    </p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
