@@ -1,17 +1,5 @@
-# Shadow Box
-
-<p align="center">
-  <img src="./docs/screenshots/app-icon.png" width="120" alt="Shadow Box Logo">
-</p>
-
-<h1 align="center">Shadow Box</h1>
-
-<p align="center">
-Secure • Private • Reliable Communication
-</p>
-
 <!-- CLOUDE PAY WALLET & C1 COIN SECTION START -->
-## Cloude Pay — Wallet & C1 Coin
+# Cloude Pay — Wallet & C1 Coin
 
 **Cloude Pay is a digital wallet project being built to make everyday digital finance and payments easier to access.** The app brings together a Nigerian naira (NGN) wallet, a C1 Coin wallet, transaction activity, and Quick Mine rewards in one mobile experience.
 
@@ -47,6 +35,24 @@ Explore the current app interface below.
   </tr>
 </table>
 <!-- CLOUDE PAY WALLET & C1 COIN SECTION END -->
+
+---
+
+## ShadowBox Project
+
+# Shadow Box
+
+<p align="center">
+  <img src="./docs/screenshots/app-icon.png" width="120" alt="Shadow Box Logo">
+</p>
+
+<h1 align="center">Shadow Box</h1>
+
+<p align="center">
+Secure • Private • Reliable Communication
+</p>
+
+
 
 ---
 
