@@ -10,6 +10,25 @@
 Secure • Private • Reliable Communication
 </p>
 
+<!-- FEATURED SIX PHOTOS START -->
+<p align="center">
+  <img src="docs/screenshots/showcase-01.jpg" width="760" alt="ShadowBox — featured screen">
+</p>
+<p align="center"><b>SHADOWBOX — APP PREVIEW</b></p>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/showcase-02.jpg" width="240" alt="Messaging"><br><sub>Messaging</sub></td>
+    <td align="center"><img src="docs/screenshots/showcase-03.jpg" width="240" alt="Contacts"><br><sub>Contacts</sub></td>
+    <td align="center"><img src="docs/screenshots/showcase-04.jpg" width="240" alt="Voice and video calling"><br><sub>Voice and video calling</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/showcase-05.jpg" width="240" alt="Media sharing"><br><sub>Media sharing</sub></td>
+    <td align="center"><img src="docs/screenshots/showcase-06.jpg" width="240" alt="Profile and identity"><br><sub>Profile and identity</sub></td>
+    <td align="center"><b>ShadowBox</b><br><sub>Private communication</sub></td>
+  </tr>
+</table>
+<!-- FEATURED SIX PHOTOS END -->
+
 ---
 
 ## Overview
